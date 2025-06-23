@@ -20,13 +20,19 @@ from opensearch.client import initialize_client
 async def create_mcp_server() -> Server:
     server = Server("opensearch-mcp-server")
     opensearch_url = os.getenv("OPENSEARCH_URL", "https://localhost:9200")
+    is_serverless = os.getenv("AWS_OPENSEARCH_SERVERLESS", "").lower() == "true"
+
+    # Create a Client Object
+    client = initialize_client(opensearch_url)
 
     # Call tool generator
-    await generate_tools_from_openapi(initialize_client(opensearch_url))
+    await generate_tools_from_openapi(client)
 
     # Filter all tools by version
-    version = get_opensearch_version(opensearch_url)
+    version = get_opensearch_version(client, is_serverless)
+
     enabled_tools = get_enabled_tools(version)
+
     logging.info(f"Connected OpenSearch version: {version}")
     logging.info(f"Enabled tools: {list(enabled_tools.keys())}")
 

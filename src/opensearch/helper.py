@@ -1,5 +1,6 @@
 # Copyright OpenSearch Contributors
 # SPDX-License-Identifier: Apache-2.0
+from opensearchpy import OpenSearch
 
 from .client import initialize_client
 import json
@@ -33,7 +34,7 @@ def get_shards(opensearch_url: str, index: str) -> json:
     return response
 
 
-def get_opensearch_version(opensearch_url: str) -> Version:
+def get_opensearch_version(client: OpenSearch, is_serverless: bool) -> Version:
     """
     Get the version of OpenSearch cluster.
 
@@ -43,6 +44,9 @@ def get_opensearch_version(opensearch_url: str) -> Version:
     Returns:
         Version: The version of OpenSearch cluster (SemVer style)
     """
-    client = initialize_client(opensearch_url)
-    response = client.info()
-    return Version.parse(response["version"]["number"])
+    if is_serverless:
+        version ="99.99.99"
+    else:
+        response = client.info()
+        version = Version.parse(response["version"]["number"])
+    return version
