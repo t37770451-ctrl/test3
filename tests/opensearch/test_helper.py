@@ -1,9 +1,11 @@
 # Copyright OpenSearch Contributors
 # SPDX-License-Identifier: Apache-2.0
 
+
 import pytest
 from unittest.mock import patch
 from semver import Version
+
 
 
 class TestOpenSearchHelper:
@@ -189,6 +191,26 @@ class TestOpenSearchHelper:
     def test_get_opensearch_version(self, mock_initialize_client):
         """Test get_opensearch_version function"""
         from opensearch.helper import get_opensearch_version
+        mock_client = mock_initialize_client.return_value
+
+
+        # Setup mock response
+        mock_response = {"version": {"number": "2.11.1"}}
+        mock_client.cat.indices.return_value = mock_response
+        mock_client = mock_initialize_client.return_value
+        mock_client.info.return_value = mock_response
+        # Execute
+        result = get_opensearch_version(mock_client, False)
+
+        # Assert
+        assert isinstance(result, Version)
+        assert str(result) == "2.11.1"
+        mock_client.info.assert_called_once_with()
+
+    @patch("opensearch.helper.initialize_client")
+    def test_get_opensearch_version_serverless(self, mock_initialize_client):
+        """Test get_opensearch_version function"""
+        from opensearch.helper import get_opensearch_version
 
         # Setup mock response
         mock_response = {"version": {"number": "2.11.1"}}
@@ -196,15 +218,25 @@ class TestOpenSearchHelper:
         mock_client.info.return_value = mock_response
 
         # Execute
-        result = get_opensearch_version("https://test-opensearch-domain.com")
-
+        result = get_opensearch_version(mock_client, True)
         # Assert
         assert isinstance(result, Version)
         assert str(result) == "2.11.1"
-        mock_initialize_client.assert_called_once_with(
-            "https://test-opensearch-domain.com"
-        )
-        mock_client.info.assert_called_once_with()
+
+    @patch("opensearch.helper.initialize_client.serverless")
+    def test_get_opensearch_version_error(self, mock_initialize_client):
+        """Test get_opensearch_version error handling"""
+        from opensearch.helper import get_opensearch_version
+
+        # Setup mock to raise exception
+        is_serverless =True
+        mock_client = mock_initialize_client.return_value
+        mock_client.info.side_effect = Exception("Failed to get version")
+
+        # Execute and assert
+        with pytest.raises(Exception) as exc_info:
+            get_opensearch_version("https://test-opensearch-domain.com", is_serverless)
+        assert str(exc_info.value) == "Failed to get version"
 
     @patch("opensearch.helper.initialize_client")
     def test_get_opensearch_version_error(self, mock_initialize_client):
@@ -212,10 +244,11 @@ class TestOpenSearchHelper:
         from opensearch.helper import get_opensearch_version
 
         # Setup mock to raise exception
+        is_serverless =False
         mock_client = mock_initialize_client.return_value
         mock_client.info.side_effect = Exception("Failed to get version")
 
         # Execute and assert
         with pytest.raises(Exception) as exc_info:
-            get_opensearch_version("https://test-opensearch-domain.com")
+            get_opensearch_version(mock_client, is_serverless)
         assert str(exc_info.value) == "Failed to get version"
