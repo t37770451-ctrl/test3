@@ -24,3 +24,12 @@ dist/
 wheels/
 *.egg-info
 /__pycache__
+
+# Configuration files with sensitive data
+*config.yml
+*config.yaml
+fort_config.yml
+config.yml
+config.yaml
+*.config.yml
+*.config.yaml

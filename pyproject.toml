@@ -1,9 +1,27 @@
 [project]
-name = "opensearch-mcp-server-py"
-version = "0.3.1-dashboards"
+name = "gg_mcp_os"
+version = "0.3.2"
 description = "OpenSearch MCP Server с поддержкой Dashboards API - форк с дополнительной функциональностью для подключения через OpenSearch Dashboards"
 readme = "README.md"
 requires-python = ">=3.10"
+authors = [
+    {name = "VladMain"}
+]
+maintainers = [
+    {name = "VladMain"}
+]
+keywords = ["opensearch", "mcp", "ai", "assistant", "dashboards", "search"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Internet :: WWW/HTTP :: Indexing/Search",
+]
 dependencies = [
     "aiohttp>=3.11.18",
     "boto3>=1.38.3",
@@ -16,7 +34,7 @@ dependencies = [
 ]
 
 license = "Apache-2.0"
-license-files = ["LICENSE", "NOTICE" ]
+license-files = ["LICENSE.txt", "NOTICE.txt"]
 
 [dependency-groups]
 dev = [
@@ -75,8 +93,14 @@ line-ending = "auto"
 docstring-code-format = true
 
 [project.scripts]
-opensearch-mcp-server-py = "mcp_server_opensearch:main"  # Importable path
-mcp-server-opensearch = "mcp_server_opensearch.__main__:main"  # Entry point for uv
+gg-mcp-os = "mcp_server_opensearch:main"
+mcp-server-opensearch = "mcp_server_opensearch.__main__:main"
+
+[project.optional-dependencies]
+server = []
+
+[project.entry-points."console_scripts"]
+gg-mcp-os = "mcp_server_opensearch:main"
 
 [project.urls]
 Homepage = "https://github.com/VladMain/opensearch-mcp-server-py"
