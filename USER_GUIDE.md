@@ -203,18 +203,17 @@ The LLM should choose the appropriate cluster based on the operation context (e.
 ### Authentication Methods
 
 The server supports multiple authentication methods with the following priority order:
-1. **IAM Role Authentication**
-2. **Basic Authentication**
-3. **AWS Credentials Authentication**
-4. **No Authentication** (only if `OPENSEARCH_NO_AUTH=true` environment variable is set)
+1. **No Authentication** (only if `OPENSEARCH_NO_AUTH=true` environment variable is set)
+2. **IAM Role Authentication**
+3. **Basic Authentication**
+4. **AWS Credentials Authentication**
 
 ### Single Mode Authentication
 
-#### Basic Authentication
+#### No Authentication (for clusters without authentication)
 ```bash
 export OPENSEARCH_URL="<your_opensearch_domain_url>"
-export OPENSEARCH_USERNAME="<your_opensearch_domain_username>"
-export OPENSEARCH_PASSWORD="<your_opensearch_domain_password>"
+export OPENSEARCH_NO_AUTH="true"
 ```
 
 #### IAM Role Authentication
@@ -222,6 +221,13 @@ export OPENSEARCH_PASSWORD="<your_opensearch_domain_password>"
 export OPENSEARCH_URL="<your_opensearch_domain_url>"
 export AWS_IAM_ARN="arn:aws:iam::123456789012:role/YourOpenSearchRole"
 export AWS_REGION="<your_aws_region>"
+```
+
+#### Basic Authentication
+```bash
+export OPENSEARCH_URL="<your_opensearch_domain_url>"
+export OPENSEARCH_USERNAME="<your_opensearch_domain_username>"
+export OPENSEARCH_PASSWORD="<your_opensearch_domain_password>"
 ```
 
 #### AWS Credentials Authentication
@@ -242,12 +248,6 @@ export AWS_REGION="<your_aws_region>"
 export AWS_PROFILE="<your_aws_profile>"
 ```
 
-#### No Authentication (for clusters without authentication)
-```bash
-export OPENSEARCH_URL="<your_opensearch_domain_url>"
-export OPENSEARCH_NO_AUTH="true"
-```
-
 ### Multi Mode Authentication
 
 Multi mode uses a YAML configuration file to define authentication for each cluster:
@@ -257,6 +257,11 @@ version: "1.0"
 description: "OpenSearch cluster configurations"
 
 clusters:
+  # No Authentication (for clusters without authentication)
+  no-auth-cluster:
+    opensearch_url: "http://localhost:9200"
+    opensearch_no_auth: true
+
   # Basic Authentication
   local-cluster:
     opensearch_url: "http://localhost:9200"
@@ -281,29 +286,24 @@ clusters:
     aws_region: "us-east-1"
     profile: "your-aws-profile"
     is_serverless: true
-
-  # No Authentication (for clusters without authentication)
-  no-auth-cluster:
-    opensearch_url: "http://localhost:9200"
-    opensearch_no_auth: true
 ```
 
 #### Authentication Methods in Multi Mode:
 
-1. **IAM Role Authentication:**
+1. **No Authentication:**
+   - Requires: `opensearch_url`, `opensearch_no_auth: true`
+   - For OpenSearch clusters that allow anonymous access without authentication
+
+2. **IAM Role Authentication:**
    - Requires: `opensearch_url`, `iam_arn`, `aws_region`, `profile` (optional)
    - **Process**: The server assumes the specified IAM role using AWS STS and then connects to the cluster using those temporary credentials
 
-2. **Basic Authentication:**
+3. **Basic Authentication:**
    - Requires: `opensearch_url`, `opensearch_username`, `opensearch_password`
 
-3. **AWS Credentials Authentication:**
+4. **AWS Credentials Authentication:**
    - Requires: `opensearch_url`, `profile` (optional)
    - Uses AWS credentials from the specified profile or default credentials
-
-4. **No Authentication:**
-   - Requires: `opensearch_url`, `opensearch_no_auth: true`
-   - For OpenSearch clusters that allow anonymous access without authentication
 
 ### AWS Profile Support
 
@@ -426,11 +426,11 @@ When using multi-mode, each cluster in your YAML configuration file accepts the 
 
 | Authentication Method | Required Parameters | Optional Parameters |
 |----------------------|-------------------|-------------------|
+| **No Authentication** | `opensearch_url` | `opensearch_no_auth: true` |
 | **Basic Authentication** | `opensearch_url`, `opensearch_username`, `opensearch_password` | `profile` |
 | **IAM Role Authentication** | `opensearch_url`, `iam_arn`, `aws_region` | `profile` |
 | **AWS Credentials Authentication** | `opensearch_url` | `aws_region`, `profile` |
 | **OpenSearch Serverless** | `opensearch_url`, `aws_region` | `profile`, `is_serverless: true` |
-| **No Authentication** | `opensearch_url` | `opensearch_no_auth: true` |
 
 ## Tool Filter
 
