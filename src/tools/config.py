@@ -76,6 +76,8 @@ def _load_config_from_cli(cli_tool_overrides: Dict[str, str]) -> List[Tuple[str,
     :return: List of tuples (tool_id, field_alias, field_value).
     """
     configs = []
+    if not cli_tool_overrides:
+        return configs
     
     # Generate regex pattern dynamically from all available aliases
     all_aliases = _get_all_aliases()

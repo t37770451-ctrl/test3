@@ -392,4 +392,47 @@ def test_long_description_warning_with_aliases(caplog):
 
     assert len(caplog.records) == 1
     assert caplog.records[0].levelname == 'WARNING'
-    assert "exceeds 1024 characters" in caplog.text 
+    assert "exceeds 1024 characters" in caplog.text
+
+
+def test_unified_config_file_with_multiple_sections():
+    """Test that tool customization works correctly in a unified config file with multiple sections."""
+    # Unified config file with clusters and tools sections (no tool_filters as they don't work in Multi Mode)
+    unified_config = {
+        'version': '1.0',
+        'description': 'Unified OpenSearch MCP Server Configuration',
+        'clusters': {
+            'test-cluster': {
+                'opensearch_url': 'http://localhost:9200',
+                'opensearch_username': 'admin',
+                'opensearch_password': 'admin123'
+            }
+        },
+        'tools': {
+            'ListIndexTool': {
+                'display_name': 'Unified Index Manager',
+                'description': 'Tool customized via unified config file'
+            },
+            'SearchIndexTool': {
+                'display_name': 'Unified Searcher'
+            }
+        }
+    }
+    
+    config_path = 'test_unified_config.yml'
+    with open(config_path, 'w') as f:
+        yaml.dump(unified_config, f)
+
+    registry = copy.deepcopy(MOCK_TOOL_REGISTRY)
+    custom_registry = apply_custom_tool_config(registry, config_path, {})
+
+    # Tool customization should work correctly even with other sections present
+    assert custom_registry['ListIndexTool']['display_name'] == 'Unified Index Manager'
+    assert custom_registry['ListIndexTool']['description'] == 'Tool customized via unified config file'
+    assert custom_registry['SearchIndexTool']['display_name'] == 'Unified Searcher'
+    
+    # Other sections should not interfere with tool customization
+    assert custom_registry['ListIndexTool']['other_field'] == 'some_value'
+    assert custom_registry['SearchIndexTool']['description'] == 'Original description for SearchIndexTool'
+
+    os.remove(config_path) 

@@ -1,3 +1,30 @@
+version: "1.0"
+description: "Unified OpenSearch MCP Server Configuration"
+
+# Cluster configurations (used in Multi Mode)
+clusters:
+  local-cluster:
+    opensearch_url: "http://localhost:9200"
+    opensearch_username: "admin"
+    opensearch_password: "your_password_here"
+
+  remote-cluster:
+    opensearch_url: "https://your-opensearch-domain.us-east-2.es.amazonaws.com"
+    profile: "your-aws-profile"
+  
+  remote-cluster-with-iam:
+    opensearch_url: "https://your-opensearch-domain.us-east-2.es.amazonaws.com"
+    iam_arn: "arn:aws:iam::123456789012:role/YourOpenSearchRole"
+    aws_region: "us-east-2"
+    profile: "your-aws-profile"
+
+  serverless-cluster:
+    opensearch_url: "https://collection-id.us-east-1.aoss.amazonaws.com"
+    aws_region: "us-east-1"
+    profile: "your-aws-profile"
+    is_serverless: true
+
+# Tool customization configurations (supported in both Single and Multi Mode)
 tools:
   ListIndexTool:
     display_name: "My Custom Index Lister"
@@ -6,3 +33,48 @@ tools:
     display_name: "Super Searcher"
   GetShardsTool:
     description: "A better description to get information about shards in OpenSearch."
+
+# ==============================================================================
+# Tool filtering configurations (ONLY supported in Single Mode)
+# ==============================================================================
+# Note: These sections are ignored in Multi Mode. Tool filtering only works
+# when using Single Mode (--mode single or default mode).
+# Uncomment the sections below if you're using Single Mode and want to filter tools.
+
+# tool_category:
+#   search_tools:
+#     - "SearchIndexTool"
+#     - "MsearchTool"
+#   management_tools:
+#     - "ListIndexTool"
+#     - "CreateIndexTool"
+#     - "DeleteIndexTool"
+
+# tool_filters:
+#   disabled_tools:
+#     - "DangerousTool"  # Example: disable dangerous tools
+#   disabled_categories:
+#     - "experimental_tools"  # Example: disable experimental tool category  
+#   disabled_tools_regex:
+#     - "debug.*"  # Example: disable all tools starting with debug
+#   settings:
+#     allow_write: true  # Enable/disable write operations
+
+
+# Example configurations for different authentication methods:
+# 
+# 1. IAM Role Authentication (recommended for production):
+#    - Requires: opensearch_url, iam_arn, aws_region, profile
+#    - Uses AWS IAM roles for authentication
+#
+# 2. Basic Authentication:
+#    - Requires: opensearch_url, opensearch_username, opensearch_password
+#    - Uses username/password for authentication
+#
+# 3. AWS Profile Authentication:
+#    - Requires: opensearch_url, profile
+#    - Uses AWS credentials from the specified profile
+#
+# 4. OpenSearch Serverless:
+#    - Requires: opensearch_url, aws_region
+#    - Optional: profile, is_serverless: true 

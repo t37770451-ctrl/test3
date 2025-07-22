@@ -99,7 +99,7 @@ See [Authentication](#authentication) section for detailed authentication setup.
       "args": [
         "opensearch-mcp-server-py",
         "--mode", "multi",
-        "--config", "/path/to/your/clusters.yml"
+        "--config", "/path/to/your/config.yml"
       ],
       "env": {}
     }
@@ -107,7 +107,7 @@ See [Authentication](#authentication) section for detailed authentication setup.
 }
 ```
 
-**Example YAML Configuration File (`clusters.yml`):**
+**Example YAML Configuration File (`config.yml`):**
 ```yaml
 version: "1.0"
 description: "OpenSearch cluster configurations"
@@ -137,6 +137,15 @@ clusters:
     profile: "your-aws-profile"
     is_serverless: true
 
+# Tool customization configurations (supported in both Single and Multi Mode)
+tools:
+  ListIndexTool:
+    display_name: "Index Manager"
+    description: "List and manage OpenSearch indices with enhanced functionality"
+  SearchIndexTool:
+    display_name: "Super Searcher"
+  GetShardsTool:
+    description: "Retrieve detailed information about OpenSearch shards"
 ```
 
 **Key Points about Multi Mode:**
@@ -346,13 +355,13 @@ python -m mcp_server_opensearch --profile my-aws-profile
 ### Multi Mode
 ```bash
 # Stdio Server with config file
-python -m mcp_server_opensearch --mode multi --config clusters.yml
+python -m mcp_server_opensearch --mode multi --config config.yml
 
 # Streaming Server with config file
-python -m mcp_server_opensearch --mode multi --config clusters.yml --transport stream
+python -m mcp_server_opensearch --mode multi --config config.yml --transport stream
 
 # With AWS Profile (fallback if not in config)
-python -m mcp_server_opensearch --mode multi --config clusters.yml --profile my-aws-profile
+python -m mcp_server_opensearch --mode multi --config config.yml --profile my-aws-profile
 
 # Fallback to single mode behavior (no config file)
 python -m mcp_server_opensearch --mode multi
@@ -435,6 +444,8 @@ When using multi-mode, each cluster in your YAML configuration file accepts the 
 ## Tool Filter
 
 OpenSearch MCP server supports tool filtering to disable specific tools by name, category, or operation type. You can configure filtering using either a YAML configuration file or environment variables.
+
+**Important Note: Tool filtering is only supported in Single Mode. In Multi Mode, all tools are available without any filtering.**
 
 ### Configuration Methods
 
