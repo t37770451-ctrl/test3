@@ -10,6 +10,7 @@
 - [Authentication](#authentication)
 - [Running the Server](#running-the-server)
 - [Tool Filter](#tool-filter)
+- [Tool Customization](#tool-customization)
 - [LangChain Integration](#langchain-integration)
 
 ## Overview
