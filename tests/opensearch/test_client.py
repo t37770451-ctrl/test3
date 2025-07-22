@@ -16,7 +16,7 @@ class TestOpenSearchClient:
         """Setup that runs before each test method."""
         # Clear any existing environment variables
         self.original_env = {}
-        for key in ['OPENSEARCH_USERNAME', 'OPENSEARCH_PASSWORD', 'AWS_REGION', 'OPENSEARCH_URL', 'OPENSEARCH_NO_AUTH']:
+        for key in ['OPENSEARCH_USERNAME', 'OPENSEARCH_PASSWORD', 'AWS_REGION', 'OPENSEARCH_URL', 'OPENSEARCH_NO_AUTH', 'OPENSEARCH_SSL_VERIFY']:
             if key in os.environ:
                 self.original_env[key] = os.environ[key]
                 del os.environ[key]
@@ -41,9 +41,9 @@ class TestOpenSearchClient:
     def test_initialize_client_basic_auth(self, mock_opensearch):
         """Test client initialization with basic authentication."""
         # Set environment variables
-        self.monkeypatch.setenv('OPENSEARCH_USERNAME', 'test-user')
-        self.monkeypatch.setenv('OPENSEARCH_PASSWORD', 'test-password')
-        self.monkeypatch.setenv('OPENSEARCH_URL', 'https://test-opensearch-domain.com')
+        os.environ['OPENSEARCH_USERNAME'] = 'test-user'
+        os.environ['OPENSEARCH_PASSWORD'] = 'test-password'
+        os.environ['OPENSEARCH_URL'] = 'https://test-opensearch-domain.com'
 
         # Mock OpenSearch client
         mock_client = Mock()
@@ -67,8 +67,8 @@ class TestOpenSearchClient:
     def test_initialize_client_aws_auth(self, mock_session, mock_opensearch):
         """Test client initialization with AWS IAM authentication."""
         # Set environment variables
-        self.monkeypatch.setenv('AWS_REGION', 'us-west-2')
-        self.monkeypatch.setenv('OPENSEARCH_URL', 'https://test-opensearch-domain.com')
+        os.environ['AWS_REGION'] = 'us-west-2'
+        os.environ['OPENSEARCH_URL'] = 'https://test-opensearch-domain.com'
 
         # Mock AWS credentials
         mock_credentials = Mock()
@@ -102,8 +102,8 @@ class TestOpenSearchClient:
     def test_initialize_client_aws_auth_error(self, mock_session, mock_opensearch):
         """Test client initialization when AWS authentication fails."""
         # Set environment variables
-        self.monkeypatch.setenv('AWS_REGION', 'us-west-2')
-        self.monkeypatch.setenv('OPENSEARCH_URL', 'https://test-opensearch-domain.com')
+        os.environ['AWS_REGION'] = 'us-west-2'
+        os.environ['OPENSEARCH_URL'] = 'https://test-opensearch-domain.com'
 
         # Mock AWS session to raise an error
         mock_session_instance = Mock()
@@ -124,7 +124,7 @@ class TestOpenSearchClient:
     def test_initialize_client_no_auth(self, mock_session, mock_opensearch):
         """Test client initialization when no authentication is available."""
         # Set environment variable
-        self.monkeypatch.setenv('OPENSEARCH_URL', 'https://test-opensearch-domain.com')
+        os.environ['OPENSEARCH_URL'] = 'https://test-opensearch-domain.com'
 
         # Mock AWS session to return no credentials
         mock_session_instance = Mock()

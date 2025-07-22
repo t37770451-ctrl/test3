@@ -114,39 +114,37 @@ class TestGetTools:
             lambda version, tool_info: tool_info['min_version'] == '1.0.0'
         )
 
-        # Call get_tools in single mode
-        result = get_tools(mock_tool_registry, mode='single')
+        # Patch TOOL_REGISTRY to use our mock registry
+        with patch('tools.tool_filter.TOOL_REGISTRY', mock_tool_registry):
+            # Call get_tools in single mode
+            result = get_tools(mock_tool_registry, mode='single')
 
-        # Assertions
-        assert 'ListIndexTool' in result
-        assert 'SearchIndexTool' not in result
-        assert 'param1' in result['ListIndexTool']['input_schema']['properties']
-        assert (
-            'opensearch_cluster_name'
-            not in result['ListIndexTool']['input_schema']['properties']
-        )
+            # Assertions
+            assert 'ListIndexTool' in result
+            assert 'SearchIndexTool' not in result
+            assert 'param1' in result['ListIndexTool']['input_schema']['properties']
+            assert (
+                'opensearch_cluster_name'
+                not in result['ListIndexTool']['input_schema']['properties']
+            )
 
     @patch.dict('os.environ', {'AWS_OPENSEARCH_SERVERLESS': 'true'})
     def test_get_tools_single_mode_serverless_passes_compatibility_check(
         self, mock_tool_registry, mock_patches
     ):
         """Test that serverless mode passes version compatibility checks."""
-        mock_get_version, mock_tool_reg, mock_is_compatible = mock_patches
+        mock_get_version, mock_is_compatible = mock_patches
 
-        with (
-            mock_get_version as mock_version,
-            mock_tool_reg as mock_reg,
-            mock_is_compatible as mock_compat,
-        ):
-            # Setup mocks
-            mock_version.return_value = None
-            mock_reg.items.return_value = mock_tool_registry.items()
+        # Setup mocks
+        mock_get_version.return_value = None
 
-        # Call get_tools in single mode with serverless environment
-        result = get_tools(mock_tool_registry, mode='single')
+        # Patch TOOL_REGISTRY to use our mock registry
+        with patch('tools.tool_filter.TOOL_REGISTRY', mock_tool_registry):
+            # Call get_tools in single mode with serverless environment
+            result = get_tools(mock_tool_registry, mode='single')
 
-        # is_tool_compatible should not be called
-        mock_is_compatible.assert_not_called()
+            # is_tool_compatible should not be called
+            mock_is_compatible.assert_not_called()
 
     def test_get_tools_single_mode_handles_missing_properties(self, mock_patches):
         """Test that single mode handles schemas without properties field."""
@@ -166,10 +164,12 @@ class TestGetTools:
         mock_get_version.return_value = Version.parse('2.5.0')
         mock_is_compatible.return_value = True
 
-        # Call get_tools in single mode - should not raise error
-        result = get_tools(tool_without_properties, mode='single')
-        assert 'ListIndexTool' in result
-        assert 'properties' not in result['ListIndexTool']['input_schema']
+        # Patch TOOL_REGISTRY to use our test tool registry
+        with patch('tools.tool_filter.TOOL_REGISTRY', tool_without_properties):
+            # Call get_tools in single mode - should not raise error
+            result = get_tools(tool_without_properties, mode='single')
+            assert 'ListIndexTool' in result
+            assert 'properties' not in result['ListIndexTool']['input_schema']
 
     def test_get_tools_default_mode_is_single(self, mock_tool_registry, mock_patches):
         """Test that get_tools defaults to single mode."""
@@ -178,9 +178,11 @@ class TestGetTools:
         mock_get_version.return_value = Version.parse('2.5.0')
         mock_is_compatible.return_value = True
 
-        # Call get_tools without specifying mode
-        result = get_tools(mock_tool_registry)
-        assert 'opensearch_cluster_name' not in result['SearchIndexTool']['input_schema']['properties']
+        # Patch TOOL_REGISTRY to use our mock registry
+        with patch('tools.tool_filter.TOOL_REGISTRY', mock_tool_registry):
+            # Call get_tools without specifying mode
+            result = get_tools(mock_tool_registry)
+            assert 'opensearch_cluster_name' not in result['SearchIndexTool']['input_schema']['properties']
 
     def test_get_tools_logs_version_info(self, mock_tool_registry, mock_patches, caplog):
         """Test that get_tools logs version information in single mode."""
@@ -188,10 +190,12 @@ class TestGetTools:
         mock_get_version.return_value = Version.parse('2.5.0')
         mock_is_compatible.return_value = True
 
-        # Call get_tools in single mode with logging capture
-        with caplog.at_level('INFO'):
-            get_tools(mock_tool_registry, mode='single')
-            assert 'Connected OpenSearch version: 2.5.0' in caplog.text
+        # Patch TOOL_REGISTRY to use our mock registry
+        with patch('tools.tool_filter.TOOL_REGISTRY', mock_tool_registry):
+            # Call get_tools in single mode with logging capture
+            with caplog.at_level('INFO'):
+                get_tools(mock_tool_registry, mode='single')
+                assert 'Connected OpenSearch version: 2.5.0' in caplog.text
 
 
 class TestProcessToolFilter:
