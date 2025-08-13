@@ -105,10 +105,12 @@ def _load_config_from_file(config_from_file: Dict[str, Any]) -> Dict[str, Dict[s
     return file_configs
 
 
-def _check_cli_duplicate_field_aliases(cli_tool_overrides: Dict[str, str], display_name_pattern: str, description_pattern: str) -> None:
+def _check_cli_duplicate_field_aliases(
+    cli_tool_overrides: Dict[str, str], display_name_pattern: str, description_pattern: str
+) -> None:
     """
     Check for duplicate field aliases in CLI arguments and raise ValueError if found.
-    
+
     :param cli_tool_overrides: Command line tool overrides
     :param display_name_pattern: Regex pattern for display name arguments
     :param description_pattern: Regex pattern for description arguments
@@ -116,7 +118,7 @@ def _check_cli_duplicate_field_aliases(cli_tool_overrides: Dict[str, str], displ
     """
     # Collect all arguments by tool and field type to detect duplicates
     tool_display_name_args = {}  # tool_name -> list of (arg, value)
-    tool_description_args = {}   # tool_name -> list of (arg, value)
+    tool_description_args = {}  # tool_name -> list of (arg, value)
 
     for arg, value in cli_tool_overrides.items():
         display_name_match = re.match(display_name_pattern, arg)
@@ -178,7 +180,9 @@ def _load_config_from_cli(cli_tool_overrides: Dict[str, str]) -> Dict[str, Dict[
     description_pattern = rf'tool\.(\w+)\.({description_alias_pattern})'
 
     # Check for duplicate field aliases first
-    _check_cli_duplicate_field_aliases(cli_tool_overrides, display_name_pattern, description_pattern)
+    _check_cli_duplicate_field_aliases(
+        cli_tool_overrides, display_name_pattern, description_pattern
+    )
 
     # Apply the configurations
     for arg, value in cli_tool_overrides.items():
