@@ -5,11 +5,10 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ## [Unreleased]
 
 ### Added
-
+- AggregationsTool: support for `aggs_only` and `raw` modes (with basic usage docs/examples).
 ### Fixed
-
-### Removed
-
+- AWS client configuration defaults and clearer error messages.
+- Typing/config cleanup; removed stray local files and tightened `.gitignore`.
 ## [Released 0.3.2]
 
 - Add timeout as optional parameter ([#92](https://github.com/opensearch-project/opensearch-mcp-server-py/pull/92))
