@@ -65,8 +65,8 @@ class TestTools:
         self.init_client_patcher.stop()
 
     @pytest.mark.asyncio
-    async def test_list_indices_tool_default_filtered(self):
-        """Default behavior: returns only pure list of index names (filtered)."""
+    async def test_list_indices_tool_default_full(self):
+        """Default behavior: returns full JSON info for all indices (include_detail=True)."""
         # Setup: mock full index info as returned by OpenSearch cat.indices
         self.mock_client.cat.indices.return_value = [
             {
@@ -99,15 +99,16 @@ class TestTools:
         # Assert
         assert len(result) == 1
         assert result[0]['type'] == 'text'
-        # Should include only names
-        payload = json.loads(result[0]['text'].split('\n', 1)[1])
-        assert payload == ['index1', 'index2']
-        assert 'docs.count' not in result[0]['text']
+        # Should include the full JSON output by default
+        assert '"index": "index1"' in result[0]['text']
+        assert '"docs.count": "100"' in result[0]['text']
+        assert '"index": "index2"' in result[0]['text']
+        assert '"docs.count": "200"' in result[0]['text']
         self.mock_client.cat.indices.assert_called_once_with(format='json')
 
     @pytest.mark.asyncio
-    async def test_list_indices_tool_include_detail_true(self):
-        """When include_detail=True, returns full JSON info for all indices."""
+    async def test_list_indices_tool_include_detail_false(self):
+        """When include_detail=False, returns only pure list of index names (filtered)."""
         # Setup
         self.mock_client.cat.indices.return_value = [
             {
@@ -136,14 +137,13 @@ class TestTools:
             },
         ]
         # Execute
-        result = await self._list_indices_tool(self.ListIndicesArgs(include_detail=True))
+        result = await self._list_indices_tool(self.ListIndicesArgs(include_detail=False))
         # Assert
         assert len(result) == 1
         assert result[0]['type'] == 'text'
-        assert '"index": "index1"' in result[0]['text']
-        assert '"docs.count": "100"' in result[0]['text']
-        assert '"index": "index2"' in result[0]['text']
-        assert '"docs.count": "200"' in result[0]['text']
+        payload = json.loads(result[0]['text'].split('\n', 1)[1])
+        assert payload == ['index1', 'index2']
+        assert 'docs.count' not in result[0]['text']
         self.mock_client.cat.indices.assert_called_once_with(format='json')
 
     @pytest.mark.asyncio
