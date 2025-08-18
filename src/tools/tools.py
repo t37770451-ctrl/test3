@@ -523,7 +523,8 @@ TOOL_REGISTRY = {
     },
     'CatNodesTool': {
         'display_name': 'CatNodesTool',
-        'description': 'Lists node-level information, including node roles and load metrics. Gets information about nodes metrics in the OpenSearch cluster, including system metrics pid, name, cluster_manager, ip, port, version, build, jdk, along with disk, heap, ram, and file_desc. Can be filtered to specific metrics.',        'input_schema': CatNodesArgs.model_json_schema(),
+        'description': 'Lists node-level information, including node roles and load metrics. Gets information about nodes metrics in the OpenSearch cluster, including system metrics pid, name, cluster_manager, ip, port, version, build, jdk, along with disk, heap, ram, and file_desc. Can be filtered to specific metrics.',        
+        'input_schema': CatNodesArgs.model_json_schema(),
         'function': cat_nodes_tool,
         'args_model': CatNodesArgs,
         'min_version': '1.0.0',
