@@ -5,7 +5,10 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ## [Unreleased]
 
 ### Added
-- AggregationsTool: support for `aggs_only` and `raw` modes (with basic usage docs/examples).
+- AggregationsTool to run aggregations-only searches (`size: 0`) with optional `raw` output.
+### Chore
+- Relaxed Ruff rules for test files to reduce docstring/import noise.
+- Fixed a trivial F541 lint in a log message (no behavioral change).
 ### Fixed
 - AWS client configuration defaults and clearer error messages.
 - Typing/config cleanup; removed stray local files and tightened `.gitignore`.
