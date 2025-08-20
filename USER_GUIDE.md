@@ -143,6 +143,8 @@ tools:
   ListIndexTool:
     display_name: "Index Manager"
     description: "List and manage OpenSearch indices with enhanced functionality"
+    args:
+      index: "Custom description for the 'index' argument in ListIndexTool."
   SearchIndexTool:
     display_name: "Super Searcher"
   GetShardsTool:

@@ -11,6 +11,17 @@ MOCK_TOOL_REGISTRY = {
         'display_name': 'ListIndexTool',
         'description': 'Original description for ListIndexTool',
         'other_field': 'some_value',
+        # mimic real registry structure for validation of args
+        'input_schema': {
+            'type': 'object',
+            'properties': {
+                'index': {
+                    'title': 'Index',
+                    'type': 'string',
+                    'description': 'The name of the index to get detailed information for. If provided, returns detailed information about this specific index instead of listing all indices.',
+                }
+            },
+        },
     },
     'SearchIndexTool': {
         'display_name': 'SearchIndexTool',
@@ -582,5 +593,114 @@ def test_mixed_valid_invalid_configurations():
     # Invalid fields should not be added
     assert 'invalid_field' not in custom_registry['ListIndexTool']
     assert 'another_invalid' not in custom_registry['ListIndexTool']
+
+    os.remove(config_path)
+
+
+def test_yaml_args_description_update():
+    """Test that argument descriptions can be updated via YAML config."""
+    config_content = {
+        'tools': {
+            'ListIndexTool': {
+                'args': {
+                    'index': 'Custom description for index argument',
+                }
+            }
+        }
+    }
+    config_path = 'test_args_config.yml'
+    with open(config_path, 'w') as f:
+        yaml.dump(config_content, f)
+
+    registry = copy.deepcopy(MOCK_TOOL_REGISTRY)
+    custom_registry = apply_custom_tool_config(registry, config_path, {})
+
+    # Verify input_schema is updated
+    index_prop = custom_registry['ListIndexTool']['input_schema']['properties']['index']
+    assert index_prop['description'] == 'Custom description for index argument'
+
+    # Verify args_model field description is also updated when available
+    args_model = custom_registry['ListIndexTool'].get('args_model')
+    if args_model is not None and hasattr(args_model, 'model_fields'):
+        assert (
+            args_model.model_fields['index'].description
+            == 'Custom description for index argument'
+        )
+
+    os.remove(config_path)
+
+
+def test_yaml_args_description_alias_desc():
+    """Test that 'desc' alias works for args description inside YAML."""
+    config_content = {
+        'tools': {
+            'ListIndexTool': {
+                'args': {
+                    'index': 'Alias description for index',
+                }
+            }
+        }
+    }
+    config_path = 'test_args_desc_alias.yml'
+    with open(config_path, 'w') as f:
+        yaml.dump(config_content, f)
+
+    registry = copy.deepcopy(MOCK_TOOL_REGISTRY)
+    custom_registry = apply_custom_tool_config(registry, config_path, {})
+
+    index_prop = custom_registry['ListIndexTool']['input_schema']['properties']['index']
+    assert index_prop['description'] == 'Alias description for index'
+
+    os.remove(config_path)
+
+
+def test_yaml_args_invalid_argument_raises():
+    """Test that updating a non-existent argument raises an error."""
+    config_content = {
+        'tools': {
+            'ListIndexTool': {
+                'args': {
+                    'nonexistent': 'Should fail',
+                }
+            }
+        }
+    }
+    config_path = 'test_args_invalid_arg.yml'
+    with open(config_path, 'w') as f:
+        yaml.dump(config_content, f)
+
+    registry = copy.deepcopy(MOCK_TOOL_REGISTRY)
+
+    try:
+        apply_custom_tool_config(registry, config_path, {})
+        assert False, 'Expected ValueError for invalid argument name'
+    except ValueError as e:
+        assert "does not exist on tool 'ListIndexTool'" in str(e)
+
+    os.remove(config_path)
+
+
+def test_yaml_args_description_must_be_string():
+    """Test that args description must be a string."""
+    config_content = {
+        'tools': {
+            'ListIndexTool': {
+                'args': {
+                    'index': 123,
+                }
+            }
+        }
+    }
+    config_path = 'test_args_desc_type.yml'
+    with open(config_path, 'w') as f:
+        yaml.dump(config_content, f)
+
+    registry = copy.deepcopy(MOCK_TOOL_REGISTRY)
+
+    try:
+        apply_custom_tool_config(registry, config_path, {})
+        assert False, 'Expected ValueError for non-string description'
+    except ValueError as e:
+        assert 'must be a string' in str(e)
 
     os.remove(config_path)
