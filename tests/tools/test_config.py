@@ -257,6 +257,55 @@ def test_cli_unsupported_field_ignored():
     assert 'bad_field' not in custom_registry['SearchIndexTool']
 
 
+def test_parse_cli_to_nested_config_top_level_and_args():
+    from tools.config import parse_cli_to_nested_config
+
+    cli_overrides = {
+        'tool.ListIndexTool.http_methods': 'POST',
+        'tool.ListIndexTool.customTag': 'analytics',
+        'tool.ListIndexTool.args.index.required': 'true',
+        'tool.ListIndexTool.args.index.default': 'my-index',
+        'tool.SearchIndexTool.args.query.default': '{"match_all": {}}',
+        'invalid.no_prefix': 'ignored',
+        'tool.Bad': 'ignored',  # missing fieldPath
+    }
+
+    nested = parse_cli_to_nested_config(cli_overrides)
+
+    assert 'ListIndexTool' in nested
+    assert nested['ListIndexTool']['http_methods'] == 'POST'
+    assert nested['ListIndexTool']['customTag'] == 'analytics'
+    assert nested['ListIndexTool']['args']['index']['required'] is True
+    assert nested['ListIndexTool']['args']['index']['default'] == 'my-index'
+
+    assert 'SearchIndexTool' in nested
+    assert nested['SearchIndexTool']['args']['query']['default'] == {'match_all': {}}
+
+    # invalid keys should not create entries
+    assert 'Bad' not in nested
+
+
+def test_parse_cli_to_nested_config_type_coercion():
+    from tools.config import parse_cli_to_nested_config
+
+    cli_overrides = {
+        'tool.T.boolTrue': 'true',
+        'tool.T.boolFalse': 'false',
+        'tool.T.intVal': '10',
+        'tool.T.floatVal': '1.5',
+        'tool.T.jsonObj': '{"a": 1}',
+        'tool.T.raw': 'POST',
+    }
+
+    nested = parse_cli_to_nested_config(cli_overrides)
+
+    assert nested['T']['boolTrue'] is True
+    assert nested['T']['boolFalse'] is False
+    assert nested['T']['intVal'] == 10
+    assert nested['T']['floatVal'] == 1.5
+    assert nested['T']['jsonObj'] == {'a': 1}
+    assert nested['T']['raw'] == 'POST'
+
 def test_field_aliases_structure():
     """Test that the FIELD_ALIASES structure and utility functions work correctly."""
     from tools.config import FIELD_ALIASES, _find_actual_field, _get_all_aliases

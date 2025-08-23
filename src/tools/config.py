@@ -208,6 +208,52 @@ def _load_config_from_cli(cli_tool_overrides: Dict[str, str]) -> Dict[str, Dict[
     return cli_configs
 
 
+def _put_nested_dict(nested: dict, keys: list[str], value: Any) -> dict:
+    current = nested
+    for key in keys[:-1]:
+        if not isinstance(current.get(key), dict):
+            current[key] = {}
+        current = current[key]
+    # Coerce common scalar types using YAML parser (bool/int/float/null/quoted strings, etc.)
+    if isinstance(value, str) and value.strip():
+        try:
+            coerced = yaml.safe_load(value)
+        except Exception:
+            coerced = value
+    else:
+        coerced = value
+    current[keys[-1]] = coerced
+    return nested
+
+
+def parse_cli_to_nested_config(cli_tool_overrides: Dict[str, str]) -> Dict[str, Dict[str, Any]]:
+    """
+    Parse generic CLI overrides of the form 'tool.<ToolName>.<path>=<value>' into a nested dict.
+
+    Examples:
+    - tool.ListIndexTool.http_methods=POST
+      -> { 'ListIndexTool': { 'http_methods': 'POST' } }
+
+    - tool.ListIndexTool.args.index.required=true
+      -> { 'ListIndexTool': { 'args': { 'index': { 'required': True } } } }
+
+    :param cli_tool_overrides: Mapping of CLI key -> value
+    :return: Nested overrides per tool name
+    """
+    if not cli_tool_overrides:
+        return {}
+
+    nested = {}
+    for full_key, raw_value in cli_tool_overrides.items():
+        nested_keys = [key for key in full_key.split('.') if key != '']
+        if len(nested_keys) < 3 or nested_keys[0] != 'tool':
+            continue
+        nested_keys[2] = _find_actual_field(nested_keys[2]) or nested_keys[2]
+
+        nested = _put_nested_dict(nested, nested_keys[1:], raw_value)
+
+    return nested
+
 def _validate_config(config: Dict[str, Dict[str, Any]], reference_registry: Dict[str, Any]) -> None:
     """
     Validate the configuration.
@@ -357,7 +403,7 @@ def apply_custom_tool_config(
             _apply_validated_configs(custom_registry, file_configs)
     else:
         # Use CLI arguments only if no config file
-        cli_configs = _load_config_from_cli(cli_tool_overrides)
+        cli_configs = parse_cli_to_nested_config(cli_tool_overrides)
         if cli_configs:
             _validate_config(cli_configs, custom_registry)
             _apply_validated_configs(custom_registry, cli_configs)
