@@ -517,21 +517,6 @@ OpenSearch MCP server supports tool customization to modify tool display names, 
 
 **Note:** Display names must follow the pattern `^[a-zA-Z0-9_-]+$` (alphanumeric characters, underscores, and hyphens only).
 
-### Supported Field Aliases
-
-The following field aliases are supported for tool customization:
-
-**Display Name Aliases:**
-- `display_name` (standard)
-- `name`
-- `displayName` 
-- `customName`
-
-**Description Aliases:**
-- `description` (standard)
-- `desc`
-- `customDescription`
-
 ### Configuration Methods
 
 1. **YAML Configuration File**
