@@ -3,7 +3,9 @@
 
 import json
 import logging
+from copy import deepcopy
 from semver import Version
+from opensearchpy.exceptions import NotFoundError
 from tools.tool_params import *
 
 # Configure logging
@@ -12,12 +14,104 @@ logger = logging.getLogger(__name__)
 
 # List all the helper functions, these functions perform a single rest call to opensearch
 # these functions will be used in tools folder to eventually write more complex tools
-def list_indices(args: ListIndicesArgs) -> json:
+def list_indices(args: ListIndicesArgs) -> list[dict]:
     from .client import initialize_client
 
     client = initialize_client(args)
     response = client.cat.indices(format='json')
-    return response
+    if not isinstance(response, list):
+        logger.warning('Unexpected response type for cat.indices: %s', type(response))
+        return []
+
+    sanitized: list[dict] = []
+    for item in response:
+        if not isinstance(item, dict):
+            continue
+        index_name = item.get('index')
+        if not isinstance(index_name, str):
+            continue
+        sanitized.append(item)
+
+    return sanitized
+
+
+def list_aliases(args: ListIndicesArgs) -> dict[str, list[str]]:
+    from .client import initialize_client
+
+    client = initialize_client(args)
+
+    try:
+        response = client.indices.get_alias(index='*')
+    except NotFoundError:
+        return {}
+
+    if not isinstance(response, dict):
+        logger.warning('Unexpected response type for indices.get_alias: %s', type(response))
+        return {}
+
+    alias_map: dict[str, set[str]] = {}
+    for index_name, alias_entry in response.items():
+        if not isinstance(index_name, str) or not isinstance(alias_entry, dict):
+            continue
+        aliases = alias_entry.get('aliases', {})
+        if not isinstance(aliases, dict):
+            continue
+        for alias_name in aliases.keys():
+            if not isinstance(alias_name, str):
+                continue
+            alias_map.setdefault(alias_name, set()).add(index_name)
+
+    return {alias: sorted(index_names) for alias, index_names in alias_map.items()}
+
+
+def list_data_streams(args: ListIndicesArgs) -> list[dict]:
+    from .client import initialize_client
+
+    client = initialize_client(args)
+
+    try:
+        response = client.indices.get_data_stream(name='*')
+    except NotFoundError:
+        return []
+
+    if not isinstance(response, dict):
+        logger.warning('Unexpected response type for indices.get_data_stream: %s', type(response))
+        return []
+
+    data_streams = response.get('data_streams', [])
+    if not isinstance(data_streams, list):
+        logger.warning('Unexpected data_streams payload type: %s', type(data_streams))
+        return []
+
+    sanitized: list[dict] = []
+    for stream in data_streams:
+        if not isinstance(stream, dict):
+            continue
+        name = stream.get('name')
+        if not isinstance(name, str):
+            continue
+
+        sanitized_stream = {key: deepcopy(value) for key, value in stream.items() if key != 'indices'}
+
+        sanitized_indices: list[dict] = []
+        indices_payload = stream.get('indices', [])
+        if isinstance(indices_payload, list):
+            for entry in indices_payload:
+                if not isinstance(entry, dict):
+                    continue
+                index_name = entry.get('index_name')
+                if not isinstance(index_name, str):
+                    continue
+                sanitized_entry = {'index_name': index_name}
+                index_uuid = entry.get('index_uuid')
+                if isinstance(index_uuid, str):
+                    sanitized_entry['index_uuid'] = index_uuid
+                sanitized_indices.append(sanitized_entry)
+
+        sanitized_stream['indices'] = sanitized_indices
+        sanitized.append(sanitized_stream)
+
+    return sanitized
 
 
 def get_index(args: ListIndicesArgs) -> json:

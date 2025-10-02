@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import json
+from typing import Any
+
 from .tool_params import (
     GetAllocationArgs,
     GetClusterStateArgs,
@@ -35,6 +37,8 @@ from opensearch.helper import (
     get_query_insights,
     get_segments,
     get_shards,
+    list_aliases,
+    list_data_streams,
     list_indices,
     search_index,
 )
@@ -76,24 +80,97 @@ async def list_indices_tool(args: ListIndicesArgs) -> list[dict]:
                 {'type': 'text', 'text': f'Index information for {args.index}:\n{formatted_info}'}
             ]
 
-        # Otherwise, list all indices
+        # Otherwise, list all indices, aliases, and data streams
         indices = list_indices(args)
+        aliases = list_aliases(args)
+        data_streams = list_data_streams(args)
 
-        # If include_detail is False, return only pure list of index names
-        if not args.include_detail:
-            index_names = [
-                item.get('index')
-                for item in indices
-                if isinstance(item, dict) and 'index' in item
-            ]
-            formatted_names = json.dumps(index_names, indent=2)
-            return [{'type': 'text', 'text': f'Indices:\n{formatted_names}'}]
+        indices_payload = _format_indices(indices, aliases, data_streams, args.include_detail)
+        aliases_payload = _format_aliases(aliases, args.include_detail)
+        data_streams_payload = _format_data_streams(data_streams, args.include_detail)
 
-        # include_detail is True: return full information
-        formatted_indices = json.dumps(indices, indent=2)
-        return [{'type': 'text', 'text': f'All indices information:\n{formatted_indices}'}]
+        combined_payload = {
+            'indices': indices_payload,
+            'aliases': aliases_payload,
+            'data_streams': data_streams_payload,
+        }
+
+        formatted_payload = json.dumps(combined_payload, indent=2)
+        response_text = 'Indices, aliases, and data streams information:\n' + formatted_payload
+        return [{'type': 'text', 'text': response_text}]
     except Exception as e:
         return [{'type': 'text', 'text': f'Error listing indices: {str(e)}'}]
+
+
+def _format_indices(
+    indices: list[dict],
+    aliases: dict[str, list[str]],
+    data_streams: list[dict],
+    include_detail: bool,
+) -> list[Any]:
+    excluded_indices: set[str] = set()
+
+    for index_list in aliases.values():
+        excluded_indices.update(index_list)
+
+    for stream in data_streams:
+        indices_payload = stream.get('indices', [])
+        if isinstance(indices_payload, list):
+            for entry in indices_payload:
+                if not isinstance(entry, dict):
+                    continue
+                index_name = entry.get('index_name')
+                if isinstance(index_name, str):
+                    excluded_indices.add(index_name)
+
+    filtered = [
+        item for item in indices if item.get('index') not in excluded_indices
+    ]
+    if include_detail:
+        return filtered
+    return [item['index'] for item in filtered if 'index' in item]
+
+
+def _format_aliases(
+    aliases: dict[str, list[str]], include_detail: bool
+) -> list[dict[str, Any]]:
+    sorted_alias_items = sorted(aliases.items())
+
+    if include_detail:
+        payload = [
+            {'alias': alias_name, 'indices': index_list}
+            for alias_name, index_list in sorted_alias_items
+        ]
+    else:
+        payload = [
+            {'alias': alias_name, 'index_count': len(index_list)}
+            for alias_name, index_list in sorted_alias_items
+        ]
+
+    return payload
+
+
+def _format_data_streams(
+    data_streams: list[dict], include_detail: bool
+) -> list[dict[str, Any]]:
+    if include_detail:
+        return data_streams
+
+    payload = []
+    for stream in data_streams:
+        simplified = {k: v for k, v in stream.items() if k != 'indices'}
+        indices_payload = stream.get('indices', [])
+        index_count = 0
+        if isinstance(indices_payload, list):
+            index_count = sum(
+                1
+                for entry in indices_payload
+                if isinstance(entry, dict) and isinstance(entry.get('index_name'), str)
+            )
+        simplified['index_count'] = index_count
+        payload.append(simplified)
+
+    return payload
 
 
 async def get_index_mapping_tool(args: GetIndexMappingArgs) -> list[dict]:

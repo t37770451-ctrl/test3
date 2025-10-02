@@ -24,6 +24,8 @@ class TestTools:
         self.mock_client.cat.allocation.return_value = []
         self.mock_client.cluster.state.return_value = {}
         self.mock_client.indices.stats.return_value = {}
+        self.mock_client.indices.get_alias.return_value = {}
+        self.mock_client.indices.get_data_stream.return_value = {'data_streams': []}
         self.mock_client.transport.perform_request.return_value = {}
         self.mock_client.info.return_value = {'version': {'number': '2.19.0'}}
 
@@ -139,18 +141,56 @@ class TestTools:
                 'store.size': '2mb',
                 'pri.store.size': '1mb',
             },
+            {
+                'health': 'green',
+                'status': 'open',
+                'index': '.ds-logs-ds-000001',
+                'uuid': 'uuid_ds',
+                'pri': '1',
+                'rep': '1',
+                'docs.count': '50',
+                'docs.deleted': '0',
+                'store.size': '500kb',
+                'pri.store.size': '250kb',
+            },
         ]
+        self.mock_client.indices.get_alias.return_value = {
+            'index1': {'aliases': {'alias_common': {}}},
+            'index2': {'aliases': {'alias_common': {}, 'alias_unique': {}}},
+        }
+        self.mock_client.indices.get_data_stream.return_value = {
+            'data_streams': [
+                {
+                    'name': 'logs-ds',
+                    'timestamp_field': {'name': '@timestamp'},
+                    'indices': [
+                        {'index_name': '.ds-logs-ds-000001', 'index_uuid': 'uuid-1'}
+                    ],
+                    'generation': 1,
+                    'status': 'GREEN',
+                    'template': 'logs-template',
+                }
+            ]
+        }
         # Execute
         result = await self._list_indices_tool(self.ListIndicesArgs())
         # Assert
         assert len(result) == 1
         assert result[0]['type'] == 'text'
-        # Should include the full JSON output by default
-        assert '"index": "index1"' in result[0]['text']
-        assert '"docs.count": "100"' in result[0]['text']
-        assert '"index": "index2"' in result[0]['text']
-        assert '"docs.count": "200"' in result[0]['text']
+        response_text = result[0]['text']
+        assert response_text.startswith('Indices, aliases, and data streams information:')
+        payload = json.loads(response_text.split('\n', 1)[1])
+        assert 'indices' in payload
+        assert 'aliases' in payload
+        assert 'data_streams' in payload
+        assert payload['indices'] == []
+        assert {'alias': 'alias_common', 'indices': ['index1', 'index2']} in payload['aliases']
+        assert {'alias': 'alias_unique', 'indices': ['index2']} in payload['aliases']
+        assert payload['data_streams'][0]['name'] == 'logs-ds'
+        assert payload['data_streams'][0]['indices'][0]['index_name'] == '.ds-logs-ds-000001'
         self.mock_client.cat.indices.assert_called_once_with(format='json')
+        self.mock_client.indices.get_alias.assert_called_once_with(index='*')
+        self.mock_client.indices.get_data_stream.assert_called_once_with(name='*')
 
     @pytest.mark.asyncio
     async def test_list_indices_tool_include_detail_false(self):
@@ -181,16 +221,61 @@ class TestTools:
                 'store.size': '2mb',
                 'pri.store.size': '1mb',
             },
+            {
+                'health': 'green',
+                'status': 'open',
+                'index': '.ds-metrics-ds-000001',
+                'uuid': 'uuid2a',
+                'pri': '1',
+                'rep': '1',
+                'docs.count': '10',
+                'docs.deleted': '0',
+                'store.size': '100kb',
+                'pri.store.size': '50kb',
+            },
         ]
+        self.mock_client.indices.get_alias.return_value = {
+            'index1': {'aliases': {'alias_common': {}, 'alias_one': {}}},
+            'index2': {'aliases': {'alias_common': {}}},
+        }
+        self.mock_client.indices.get_data_stream.return_value = {
+            'data_streams': [
+                {
+                    'name': 'metrics-ds',
+                    'timestamp_field': {'name': '@timestamp'},
+                    'indices': [
+                        {'index_name': '.ds-metrics-ds-000001', 'index_uuid': 'uuid-1'},
+                        {'index_name': '.ds-metrics-ds-000002', 'index_uuid': 'uuid-2'},
+                    ],
+                    'generation': 2,
+                    'status': 'GREEN',
+                    'template': 'metrics-template',
+                }
+            ]
+        }
         # Execute
         result = await self._list_indices_tool(self.ListIndicesArgs(include_detail=False))
         # Assert
         assert len(result) == 1
         assert result[0]['type'] == 'text'
-        payload = json.loads(result[0]['text'].split('\n', 1)[1])
-        assert payload == ['index1', 'index2']
-        assert 'docs.count' not in result[0]['text']
+        response_text = result[0]['text']
+        assert response_text.startswith('Indices, aliases, and data streams information:')
+        payload = json.loads(response_text.split('\n', 1)[1])
+        assert payload['indices'] == []
+        assert {
+            'alias': 'alias_common',
+            'index_count': 2,
+        } in payload['aliases']
+        assert {
+            'alias': 'alias_one',
+            'index_count': 1,
+        } in payload['aliases']
+        assert payload['data_streams'][0]['name'] == 'metrics-ds'
+        assert payload['data_streams'][0]['index_count'] == 2
+        assert 'indices' not in payload['data_streams'][0]
         self.mock_client.cat.indices.assert_called_once_with(format='json')
+        self.mock_client.indices.get_alias.assert_called_once_with(index='*')
+        self.mock_client.indices.get_data_stream.assert_called_once_with(name='*')
 
     @pytest.mark.asyncio
     async def test_list_indices_tool_with_index(self):
@@ -252,6 +337,8 @@ class TestTools:
         assert result[0]['type'] == 'text'
         assert 'Error listing indices: Test error' in result[0]['text']
         self.mock_client.cat.indices.assert_called_once_with(format='json')
+        self.mock_client.indices.get_alias.assert_not_called()
+        self.mock_client.indices.get_data_stream.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_get_index_mapping_tool(self):
