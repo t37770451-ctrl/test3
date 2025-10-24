@@ -12,6 +12,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Enhance tool filtering ([#101](https://github.com/opensearch-project/opensearch-mcp-server-py/pull/101))
 - Add core tools as a category ([#103](https://github.com/opensearch-project/opensearch-mcp-server-py/pull/103))
 - set stateless=True for streaming server by default ([#104](https://github.com/opensearch-project/opensearch-mcp-server-py/pull/104))
+- Expand ListIndexTool to return aliases and data streams while hiding backing indices from general listings ([#108](https://github.com/opensearch-project/opensearch-mcp-server-py/pull/108))
 
 ### Fixed
 
