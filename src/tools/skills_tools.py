@@ -5,7 +5,7 @@ import json
 import logging
 from typing import Dict, Any, List
 from .tool_params import baseToolArgs
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 logger = logging.getLogger(__name__)
 
@@ -13,7 +13,7 @@ class DataDistributionToolArgs(baseToolArgs):
     index: str = Field(description="Target OpenSearch index name")
     selectionTimeRangeStart: str = Field(description="Start time for analysis period")
     selectionTimeRangeEnd: str = Field(description="End time for analysis period")
-    timeField: str = Field(default="@timestamp", description="Date/time field for filtering")
+    timeField: str = Field(description="Date/time field for filtering(requied)")
     baselineTimeRangeStart: str = Field(default="", description="Start time for baseline period (optional)")
     baselineTimeRangeEnd: str = Field(default="", description="End time for baseline period (optional)")
     size: int = Field(default=1000, description="Maximum number of documents to analyze")
@@ -23,7 +23,7 @@ class LogPatternAnalysisToolArgs(baseToolArgs):
     logFieldName: str = Field(description="Field containing raw log messages to analyze")
     selectionTimeRangeStart: str = Field(description="Start time for analysis target period")
     selectionTimeRangeEnd: str = Field(description="End time for analysis target period")
-    timeField: str = Field(default="@timestamp", description="Date/time field for time-based filtering")
+    timeField: str = Field(description="Date/time field for time-based filtering(requied)")
     traceFieldName: str = Field(default="", description="Field for trace/correlation ID (optional)")
     baseTimeRangeStart: str = Field(default="", description="Start time for baseline comparison period (optional)")
     baseTimeRangeEnd: str = Field(default="", description="End time for baseline comparison period (optional)")
@@ -90,7 +90,7 @@ SKILLS_TOOLS_REGISTRY = {
         'input_schema': DataDistributionToolArgs.model_json_schema(),
         'function': data_distribution_tool,
         'args_model': DataDistributionToolArgs,
-        'min_version': '1.0.0',
+        'min_version': '3.3.0',
         'http_methods': 'POST',
     },
     'LogPatternAnalysisTool': {
@@ -99,7 +99,7 @@ SKILLS_TOOLS_REGISTRY = {
         'input_schema': LogPatternAnalysisToolArgs.model_json_schema(),
         'function': log_pattern_analysis_tool,
         'args_model': LogPatternAnalysisToolArgs,
-        'min_version': '1.0.0',
+        'min_version': '3.3.0',
         'http_methods': 'POST',
     },
 }
