@@ -6,6 +6,7 @@ import logging
 from typing import Dict, Any, List
 from .tool_params import baseToolArgs
 from pydantic import Field
+from opensearch.client import initialize_client
 
 logger = logging.getLogger(__name__)
 
@@ -28,12 +29,10 @@ class LogPatternAnalysisToolArgs(baseToolArgs):
     baseTimeRangeStart: str = Field(default="", description="Start time for baseline comparison period (optional)")
     baseTimeRangeEnd: str = Field(default="", description="End time for baseline comparison period (optional)")
 
-async def call_opensearch_tool(tool_name: str, parameters: Dict[str, Any]) -> List[Dict]:
+async def call_opensearch_tool(tool_name: str, parameters: Dict[str, Any], args: baseToolArgs) -> List[Dict]:
     """Call OpenSearch ML tools API"""
     try:
-        from opensearch.client import initialize_client_with_cluster
-
-        client = initialize_client_with_cluster(None)
+        client = initialize_client(args)
 
         # Call OpenSearch ML tools execute API
         response = client.transport.perform_request(
@@ -62,7 +61,7 @@ async def data_distribution_tool(args: DataDistributionToolArgs) -> List[Dict]:
     if args.baselineTimeRangeEnd:
         params['baselineTimeRangeEnd'] = args.baselineTimeRangeEnd
 
-    result = await call_opensearch_tool('DataDistributionTool', params)
+    result = await call_opensearch_tool('DataDistributionTool', params, args)
     return result
 
 async def log_pattern_analysis_tool(args: LogPatternAnalysisToolArgs) -> List[Dict]:
@@ -80,7 +79,7 @@ async def log_pattern_analysis_tool(args: LogPatternAnalysisToolArgs) -> List[Di
     if args.baseTimeRangeEnd:
         params['baseTimeRangeEnd'] = args.baseTimeRangeEnd
 
-    result = await call_opensearch_tool('LogPatternAnalysisTool', params)
+    result = await call_opensearch_tool('LogPatternAnalysisTool', params, args)
     return result
 
 SKILLS_TOOLS_REGISTRY = {
