@@ -35,7 +35,7 @@ async def call_opensearch_tool(tool_name: str, parameters: Dict[str, Any], args:
         client = initialize_client(args)
 
         # Call OpenSearch ML tools execute API
-        response = client.transport.perform_request(
+        response = await client.transport.perform_request(
             'POST',
             f'/_plugins/_ml/tools/_execute/{tool_name}',
             body={'parameters': parameters}

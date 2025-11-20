@@ -14,7 +14,9 @@ class TestSkillsTools:
         self.mock_client = Mock()
         
         # Configure mock client methods to return proper data structures
-        self.mock_client.transport.perform_request.return_value = {}
+        # Use AsyncMock for async methods
+        from unittest.mock import AsyncMock
+        self.mock_client.transport.perform_request = AsyncMock(return_value={})
         self.mock_client.info.return_value = {'version': {'number': '3.3.0'}}
 
         # Patch initialize_client to always return our mock client
