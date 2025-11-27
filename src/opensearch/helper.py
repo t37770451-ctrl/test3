@@ -291,15 +291,35 @@ def convert_search_results_to_csv(search_results: dict) -> str:
     if not search_results:
         return "No search results to convert"
     
-    # Handle aggregations-only queries - return as JSON instead of CSV
-    if 'aggregations' in search_results and ('hits' not in search_results or not search_results['hits']['hits']):
+    has_hits = 'hits' in search_results and search_results['hits']['hits']
+    has_aggregations = 'aggregations' in search_results
+    
+    # Handle aggregations-only queries
+    if has_aggregations and not has_hits:
         return json.dumps(search_results['aggregations'], indent=2)
     
-    # Handle regular search results
-    if 'hits' not in search_results:
-        return "No search results to convert"
+    # Handle hits-only queries
+    if has_hits and not has_aggregations:
+        return _convert_hits_to_csv(search_results['hits']['hits'])
     
-    hits = search_results['hits']['hits']
+    # Handle queries with both hits and aggregations
+    if has_hits and has_aggregations:
+        hits_csv = _convert_hits_to_csv(search_results['hits']['hits'])
+        aggregations_json = json.dumps(search_results['aggregations'], indent=2)
+        return f"SEARCH HITS:\n{hits_csv}\n\nAGGREGATIONS:\n{aggregations_json}"
+    
+    return "No search results to convert"
+
+
+def _convert_hits_to_csv(hits: list) -> str:
+    """Convert search hits to CSV format.
+    
+    Args:
+        hits: List of search hits
+        
+    Returns:
+        str: CSV formatted string
+    """
     if not hits:
         return "No documents found in search results"
     
