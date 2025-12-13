@@ -21,6 +21,7 @@ from .tool_params import (
 )
 from .utils import is_tool_compatible
 from opensearch.helper import (
+    convert_search_results_to_csv,
     get_allocation,
     get_cluster_state,
     get_index,
@@ -40,6 +41,7 @@ from opensearch.helper import (
 )
 from tools.agentic_memory.actions import *
 from tools.agentic_memory.params import *
+from .skills_tools import SKILLS_TOOLS_REGISTRY
 
 
 async def check_tool_compatibility(tool_name: str, args: baseToolArgs = None):
@@ -70,28 +72,28 @@ async def list_indices_tool(args: ListIndicesArgs) -> list[dict]:
     try:
         await check_tool_compatibility('ListIndexTool', args)
 
-        # If index is provided, always return detailed information for that specific index
-        if args.index:
-            index_info = await get_index(args)
-            formatted_info = json.dumps(index_info, indent=2)
-            return [
-                {'type': 'text', 'text': f'Index information for {args.index}:\n{formatted_info}'}
-            ]
-
-        # Otherwise, list all indices
-        indices = await list_indices(args)
-
-        # If include_detail is False, return only pure list of index names
-        if not args.include_detail:
+        if args.include_detail:
+            # Return detailed information
+            if args.index:
+                # Return detailed information for specific index or pattern
+                index_info = await get_index(args)
+                formatted_info = json.dumps(index_info, indent=2)
+                return [
+                    {'type': 'text', 'text': f'Index information for {args.index}:\n{formatted_info}'}
+                ]
+            else:
+                # Return full metadata for all indices
+                indices = await list_indices(args)
+                formatted_indices = json.dumps(indices, indent=2)
+                return [{'type': 'text', 'text': f'All indices information:\n{formatted_indices}'}]
+        else:
+            # Return minimal information (names only)
+            indices = await list_indices(args)
             index_names = [
                 item.get('index') for item in indices if isinstance(item, dict) and 'index' in item
             ]
             formatted_names = json.dumps(index_names, indent=2)
             return [{'type': 'text', 'text': f'Indices:\n{formatted_names}'}]
-
-        # include_detail is True: return full information
-        formatted_indices = json.dumps(indices, indent=2)
-        return [{'type': 'text', 'text': f'All indices information:\n{formatted_indices}'}]
     except Exception as e:
         return [{'type': 'text', 'text': f'Error listing indices: {str(e)}'}]
 
@@ -111,14 +113,23 @@ async def search_index_tool(args: SearchIndexArgs) -> list[dict]:
     try:
         await check_tool_compatibility('SearchIndexTool', args)
         result = await search_index(args)
-        formatted_result = json.dumps(result, indent=2)
-
-        return [
-            {
-                'type': 'text',
-                'text': f'Search results from {args.index}:\n{formatted_result}',
-            }
-        ]
+        
+        if args.format.lower() == 'csv':
+            csv_result = convert_search_results_to_csv(result)
+            return [
+                {
+                    'type': 'text',
+                    'text': f'Search results from {args.index} (CSV format):\n{csv_result}',
+                }
+            ]
+        else:
+            formatted_result = json.dumps(result, indent=2)
+            return [
+                {
+                    'type': 'text',
+                    'text': f'Search results from {args.index} (JSON format):\n{formatted_result}',
+                }
+            ]
     except Exception as e:
         return [{'type': 'text', 'text': f'Error searching index: {str(e)}'}]
 
@@ -493,9 +504,10 @@ from .generic_api_tool import GenericOpenSearchApiArgs, generic_opensearch_api_t
 
 # Registry of available OpenSearch tools with their metadata
 TOOL_REGISTRY = {
+    **SKILLS_TOOLS_REGISTRY,
     'ListIndexTool': {
         'display_name': 'ListIndexTool',
-        'description': 'Lists indices in the OpenSearch cluster. By default, returns a filtered list of index names only to minimize response size. Set include_detail=true to return full metadata from cat.indices (docs.count, store.size, etc.). If an index parameter is provided, returns detailed information for that specific index including mappings and settings.',
+        'description': 'Lists indices in the OpenSearch cluster. If an index name or pattern is specified, return only information about the provided index or index pattern. The include_detail flag controls output: if False, returns only index name(s); if True (default), returns full metadata.',
         'input_schema': ListIndicesArgs.model_json_schema(),
         'function': list_indices_tool,
         'args_model': ListIndicesArgs,

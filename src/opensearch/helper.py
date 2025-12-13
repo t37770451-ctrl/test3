@@ -3,6 +3,11 @@
 
 import json
 import logging
+import csv
+import io
+import math
+from decimal import Decimal
+import json
 from semver import Version
 from tools.tool_params import *
 from tools.agentic_memory.params import *
@@ -20,7 +25,9 @@ async def list_indices(args: ListIndicesArgs) -> json:
     from .client import get_opensearch_client
 
     async with get_opensearch_client(args) as client:
-        response = await client.cat.indices(format='json')
+        # Pass index parameter if provided to filter results by pattern or specific index
+        index_param = args.index if args.index else None
+        response = await client.cat.indices(index=index_param, format='json')
         return response
 
 
@@ -50,9 +57,19 @@ async def get_index_mapping(args: GetIndexMappingArgs) -> json:
 
 async def search_index(args: SearchIndexArgs) -> json:
     from .client import get_opensearch_client
+    from tools.tools import TOOL_REGISTRY
 
     async with get_opensearch_client(args) as client:
-        response = await client.search(index=args.index, body=args.query)
+        query = normalize_scientific_notation(args.query)
+        
+        # Limit size to maximum of 100
+        tool_info = TOOL_REGISTRY.get('SearchIndexTool', {})
+        max_size_limit = tool_info.get('max_size_limit', 100)  # Default to 100 if not configured
+
+        effective_size = min(args.size, max_size_limit) if args.size else 10
+        query['size'] = effective_size
+        
+        response = await client.search(index=args.index, body=query)
         return response
 
 
@@ -279,6 +296,127 @@ async def get_nodes_info(args: GetNodesArgs) -> json:
         response = await client.transport.perform_request(method='GET', url=url)
 
         return response
+
+
+def convert_search_results_to_csv(search_results: dict) -> str:
+    """Convert OpenSearch search results to CSV format.
+    
+    Args:
+        search_results: The JSON response from search_index function
+        
+    Returns:
+        str: CSV formatted string of the search results
+    """
+    if not search_results:
+        return "No search results to convert"
+    
+    has_hits = 'hits' in search_results and search_results['hits']['hits']
+    has_aggregations = 'aggregations' in search_results
+    
+    # Handle aggregations-only queries
+    if has_aggregations and not has_hits:
+        return json.dumps(search_results['aggregations'], indent=2)
+    
+    # Handle hits-only queries
+    if has_hits and not has_aggregations:
+        return _convert_hits_to_csv(search_results['hits']['hits'])
+    
+    # Handle queries with both hits and aggregations
+    if has_hits and has_aggregations:
+        hits_csv = _convert_hits_to_csv(search_results['hits']['hits'])
+        aggregations_json = json.dumps(search_results['aggregations'], indent=2)
+        return f"SEARCH HITS:\n{hits_csv}\n\nAGGREGATIONS:\n{aggregations_json}"
+    
+    return "No search results to convert"
+
+
+def _convert_hits_to_csv(hits: list) -> str:
+    """Convert search hits to CSV format.
+    
+    Args:
+        hits: List of search hits
+        
+    Returns:
+        str: CSV formatted string
+    """
+    if not hits:
+        return "No documents found in search results"
+    
+    # Extract all unique field names from all documents (flattened)
+    all_fields = set()
+    for hit in hits:
+        if '_source' in hit:
+            _flatten_fields(hit['_source'], all_fields)
+        # Also include metadata fields
+        all_fields.update(['_index', '_id', '_score'])
+    
+    # Convert to sorted list for consistent column order
+    fieldnames = sorted(list(all_fields))
+    
+    # Create CSV in memory
+    output = io.StringIO()
+    writer = csv.DictWriter(output, fieldnames=fieldnames)
+    writer.writeheader()
+    
+    # Write each document as a row
+    for hit in hits:
+        row = {}
+        # Add metadata fields
+        row['_index'] = hit.get('_index', '')
+        row['_id'] = hit.get('_id', '')
+        row['_score'] = hit.get('_score', '')
+        
+        # Add source fields (flattened)
+        if '_source' in hit:
+            _flatten_object(hit['_source'], row)
+        
+        writer.writerow(row)
+    
+    return output.getvalue()
+
+
+def _flatten_fields(obj: dict, fields: set, prefix: str = '') -> None:
+    """Extract all field names from nested objects.
+    
+    Args:
+        obj: Object to extract field names from
+        fields: Set to add field names to
+        prefix: Current field prefix
+    """
+    for key, value in obj.items():
+        field_name = f'{prefix}{key}' if prefix else key
+        if isinstance(value, dict):
+            _flatten_fields(value, fields, f'{field_name}.')
+        elif isinstance(value, list) and value and isinstance(value[0], dict):
+            # For arrays of objects, flatten the first object to get field structure
+            _flatten_fields(value[0], fields, f'{field_name}.')
+            fields.add(field_name)  # Also keep the array field itself
+        else:
+            fields.add(field_name)
+
+
+def _flatten_object(obj: dict, row: dict, prefix: str = '') -> None:
+    """Flatten nested objects into separate columns.
+    
+    Args:
+        obj: Object to flatten
+        row: Row dictionary to add flattened fields to
+        prefix: Current field prefix
+    """
+    for key, value in obj.items():
+        field_name = f'{prefix}{key}' if prefix else key
+        if isinstance(value, dict):
+            _flatten_object(value, row, f'{field_name}.')
+        elif isinstance(value, list):
+            if value and isinstance(value[0], dict):
+                # For arrays of objects, flatten first object and keep array as JSON
+                _flatten_object(value[0], row, f'{field_name}.')
+                row[field_name] = json.dumps(value)
+            else:
+                # For simple arrays, convert to JSON
+                row[field_name] = json.dumps(value)
+        else:
+            row[field_name] = str(value) if value is not None else ''
 
 
 async def get_opensearch_version(args: baseToolArgs) -> Version:
@@ -561,3 +699,106 @@ async def search_agentic_memory(args: SearchAgenticMemoryArgs) -> Dict[str, Any]
             raise helper_error('search agentic memory', e)
 
         return response
+
+
+def plain_float(value):
+    """Convert a float to a non-scientific notation number.
+
+    This function is intended to normalize floating-point values so that
+    when they are serialized to JSON they do not appear in scientific
+    notation (e.g., `1.23E10`), which some APIs (like OpenSearch) may
+    reject for numeric fields such as epoch millis.
+
+    Args:
+        value (float | None): The input floating-point value to normalize.
+            If None, NaN, or an infinite value is passed, it is treated
+            as invalid.
+
+    Returns:
+        int | float | None:
+            - `None` if `value` is None, NaN, or infinite.
+            - An `int` if the normalized representation has no fractional
+              part (e.g., `1.000E3` → `1000`).
+            - A `float` if the normalized representation has a fractional
+              part (e.g., `1.234E2` → `123.4`).
+    """
+    if value is None or math.isnan(value) or math.isinf(value):
+        return None
+
+    d = Decimal(str(value)).normalize()
+    s = format(d, "f")
+    if "." in s:
+        s = s.rstrip("0").rstrip(".")
+    if s == "" or s == "-":
+        s = "0"
+
+    if "." not in s:
+        return int(s)
+    else:
+        return float(s)
+
+
+def _convert_value(v):
+    """Recursively normalize scientific-notation floats inside a structure.
+
+    This is an internal helper that walks nested Python objects and applies
+    `plain_float` to all `float` values. Only `float` instances are touched;
+    strings and other scalar types are left unchanged.
+
+    Args:
+        v (Any): A value that may be a dict, list, float, or any other type.
+            - If `v` is a `dict`, all values are processed recursively.
+            - If `v` is a `list`, all elements are processed recursively.
+            - If `v` is a `float`, it is passed through `plain_float`.
+            - Any other type is returned as-is.
+
+    Returns:
+        Any: A new structure of the same shape with all `float` values
+        normalized (non-scientific notation) where possible.
+    """
+    if isinstance(v, dict):
+        return {k: _convert_value(sub) for k, sub in v.items()}
+    elif isinstance(v, list):
+        return [_convert_value(sub) for sub in v]
+    elif isinstance(v, float):
+        return plain_float(v)
+    else:
+        return v
+
+
+def normalize_scientific_notation(body):
+    """Normalize scientific-notation floats in a request body.
+
+    This function is meant to be used before sending a request body to
+    OpenSearch (or similar APIs) to ensure that numeric values do not
+    appear in scientific notation, which can cause parsing errors for
+    date/epoch fields.
+
+    The function supports both Python objects and JSON strings:
+
+    - If `body` is a `dict` or `list`, it is processed recursively.
+    - If `body` is a JSON `str`, it is first deserialized with
+      `json.loads`, then processed, and the resulting Python object
+      is returned.
+
+    Args:
+        body (dict | list | str): The request body to normalize. It can be:
+            - A nested Python structure (`dict` / `list`) containing floats.
+            - A JSON string representing such a structure.
+
+    Returns:
+        dict | list:
+            The normalized Python structure (usually a dict) with all floats
+            converted to non-scientific notation numeric values where possible.
+            This object can be passed directly to `opensearch-py` as `body`.
+
+    Raises:
+        json.JSONDecodeError: If `body` is a string that is not valid JSON.
+    """
+    if isinstance(body, str):
+        # Treat as JSON string
+        data = json.loads(body)
+        return _convert_value(data)
+    else:
+        # Treat as Python object (dict / list / etc.)
+        return _convert_value(body)

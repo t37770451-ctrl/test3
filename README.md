@@ -37,29 +37,29 @@ By default, only **core tools** are enabled to provide essential OpenSearch func
 
 Core tools are grouped under the `core_tools` category and can be disabled at once using `OPENSEARCH_DISABLED_CATEGORIES=core_tools`. Avoid creating custom categories with this name as they will override the built-in category.
 
-- [ListIndexTool](https://docs.opensearch.org/docs/latest/api-reference/cat/cat-indices/): Lists all indices in OpenSearch with full information including docs.count, docs.deleted, store.size, etc. If an index parameter is provided, returns detailed information about that specific index.
-- [IndexMappingTool](https://docs.opensearch.org/docs/latest/ml-commons-plugin/agents-tools/tools/index-mapping-tool/): Retrieves index mapping and setting information for an index in OpenSearch.
-- [SearchIndexTool](https://docs.opensearch.org/docs/latest/ml-commons-plugin/agents-tools/tools/search-index-tool/): Searches an index using a query written in query domain-specific language (DSL) in OpenSearch.
-- [GetShardsTool](https://docs.opensearch.org/docs/latest/api-reference/cat/cat-shards/): Gets information about shards in OpenSearch.
-- [ClusterHealthTool](https://docs.opensearch.org/docs/latest/api-reference/cluster-api/cluster-health/): Returns basic information about the health of the cluster.
-- [CountTool](https://docs.opensearch.org/docs/latest/api-reference/search-apis/count/): Returns number of documents matching a query.
-- [ExplainTool](https://docs.opensearch.org/docs/latest/api-reference/search-apis/explain/): Returns information about why a specific document matches (or doesn't match) a query.
-- [MsearchTool](https://docs.opensearch.org/docs/latest/api-reference/search-apis/multi-search/): Allows to execute several search operations in one request.
+- [ListIndexTool](https://docs.opensearch.org/latest/api-reference/cat/cat-indices/): Lists all indices in OpenSearch with full information including docs.count, docs.deleted, store.size, etc. If an index parameter is provided, returns detailed information about that specific index.
+- [IndexMappingTool](https://docs.opensearch.org/latest/ml-commons-plugin/agents-tools/tools/index-mapping-tool/): Retrieves index mapping and setting information for an index in OpenSearch.
+- [SearchIndexTool](https://docs.opensearch.org/latest/ml-commons-plugin/agents-tools/tools/search-index-tool/): Searches an index using a query written in query domain-specific language (DSL) in OpenSearch.
+- [GetShardsTool](https://docs.opensearch.org/latest/api-reference/cat/cat-shards/): Gets information about shards in OpenSearch.
+- [ClusterHealthTool](https://docs.opensearch.org/latest/api-reference/cluster-api/cluster-health/): Returns basic information about the health of the cluster.
+- [CountTool](https://docs.opensearch.org/latest/api-reference/search-apis/count/): Returns number of documents matching a query.
+- [ExplainTool](https://docs.opensearch.org/latest/api-reference/search-apis/explain/): Returns information about why a specific document matches (or doesn't match) a query.
+- [MsearchTool](https://docs.opensearch.org/latest/api-reference/search-apis/multi-search/): Allows to execute several search operations in one request.
 - [GenericOpenSearchApiTool]: A flexible tool that can call any OpenSearch API endpoint with custom paths, methods, query parameters, and request bodies. Reduces tool explosion by providing a single interface for all OpenSearch APIs. 
 
 ### Additional Tools (Disabled by Default)
 The following tools are available but disabled by default. To enable them, see the [Tool Filter](USER_GUIDE.md#tool-filter) section in the User Guide.
 
-- [GetClusterStateTool](https://docs.opensearch.org/docs/latest/api-reference/cluster-api/cluster-state/): Gets the current state of the cluster including node information, index settings, and more.
-- [GetSegmentsTool](https://docs.opensearch.org/docs/latest/api-reference/cat/cat-segments/): Gets information about Lucene segments in indices, including memory usage, document counts, and segment sizes.
-- [CatNodesTool](https://docs.opensearch.org/docs/latest/api-reference/cat/cat-nodes/): Gets information about nodes in the OpenSearch cluster, including system metrics like CPU usage, memory, disk space, and node roles.
-- [GetNodesTool](https://docs.opensearch.org/docs/latest/api-reference/nodes-apis/nodes-info/): Gets detailed information about nodes in the OpenSearch cluster, including static information like host system details, JVM info, processor type, node settings, thread pools, installed plugins, and more.
-- [GetIndexInfoTool](https://docs.opensearch.org/docs/latest/api-reference/index-apis/get-index/): Gets detailed information about an index including mappings, settings, and aliases. Supports wildcards in index names.
-- [GetIndexStatsTool](https://docs.opensearch.org/docs/latest/api-reference/index-apis/stats/): Gets statistics about an index including document count, store size, indexing and search performance metrics.
-- [GetQueryInsightsTool](https://docs.opensearch.org/docs/latest/monitoring-plugins/pa/index-query-insights/): Gets query insights from the /\_insights/top_queries endpoint, showing information about query patterns and performance.
-- [GetNodesHotThreadsTool](https://docs.opensearch.org/docs/latest/api-reference/nodes-apis/nodes-hot-threads/): Gets information about hot threads in the cluster nodes from the /\_nodes/hot_threads endpoint.
-- [GetAllocationTool](https://docs.opensearch.org/docs/latest/api-reference/cat/cat-allocation/): Gets information about shard allocation across nodes in the cluster from the /\_cat/allocation endpoint.
-- [GetLongRunningTasksTool](https://docs.opensearch.org/docs/latest/api-reference/cat/cat-tasks/): Gets information about long-running tasks in the cluster, sorted by running time in descending order.
+- [GetClusterStateTool](https://docs.opensearch.org/latest/api-reference/cluster-api/cluster-state/): Gets the current state of the cluster including node information, index settings, and more.
+- [GetSegmentsTool](https://docs.opensearch.org/latest/api-reference/cat/cat-segments/): Gets information about Lucene segments in indices, including memory usage, document counts, and segment sizes.
+- [CatNodesTool](https://docs.opensearch.org/latest/api-reference/cat/cat-nodes/): Gets information about nodes in the OpenSearch cluster, including system metrics like CPU usage, memory, disk space, and node roles.
+- [GetNodesTool](https://docs.opensearch.org/latest/api-reference/nodes-apis/nodes-info/): Gets detailed information about nodes in the OpenSearch cluster, including static information like host system details, JVM info, processor type, node settings, thread pools, installed plugins, and more.
+- [GetIndexInfoTool](https://docs.opensearch.org/latest/api-reference/index-apis/get-index/): Gets detailed information about an index including mappings, settings, and aliases. Supports wildcards in index names.
+- [GetIndexStatsTool](https://docs.opensearch.org/latest/api-reference/index-apis/stats/): Gets statistics about an index including document count, store size, indexing and search performance metrics.
+- [GetQueryInsightsTool](https://docs.opensearch.org/latest/observing-your-data/query-insights/top-n-queries/): Gets query insights from the /\_insights/top_queries endpoint, showing information about query patterns and performance.
+- [GetNodesHotThreadsTool](https://docs.opensearch.org/latest/api-reference/nodes-apis/nodes-hot-threads/): Gets information about hot threads in the cluster nodes from the /\_nodes/hot_threads endpoint.
+- [GetAllocationTool](https://docs.opensearch.org/latest/api-reference/cat/cat-allocation/): Gets information about shard allocation across nodes in the cluster from the /\_cat/allocation endpoint.
+- [GetLongRunningTasksTool](https://docs.opensearch.org/latest/api-reference/cat/cat-tasks/): Gets information about long-running tasks in the cluster, sorted by running time in descending order.
 - [CreateAgenticMemoryContainerTool](https://docs.opensearch.org/latest/ml-commons-plugin/api/agentic-memory-apis/create-memory-container/): Creates a memory container configuration for storing agentic memories.
 - [CreateAgenticMemorySessionTool](https://docs.opensearch.org/latest/ml-commons-plugin/api/agentic-memory-apis/create-session/): Creates a new session within a memory container.
 - [AddAgenticMemoriesTool](https://docs.opensearch.org/latest/ml-commons-plugin/api/agentic-memory-apis/add-memory/): Adds conversational or structured data memories to a container.
@@ -68,6 +68,13 @@ The following tools are available but disabled by default. To enable them, see t
 - [UpdateAgenticMemoryTool](https://docs.opensearch.org/latest/ml-commons-plugin/api/agentic-memory-apis/update-memory/): Updates an existing memory (supports specific fields based on memory type).
 - [DeleteAgenticMemoryByIDTool](https://docs.opensearch.org/latest/ml-commons-plugin/api/agentic-memory-apis/delete-memory/): Deletes a specific memory by its ID.
 - [DeleteAgenticMemoryByQueryTool](https://docs.opensearch.org/latest/ml-commons-plugin/api/agentic-memory-apis/delete-memory/): Deletes multiple memories matching a query criteria.
+
+### Skills Tools (Enabled by Default)
+
+Advanced analysis tools for data analysis and troubleshooting.
+
+- [DataDistributionTool](https://docs.opensearch.org/latest/ml-commons-plugin/agents-tools/tools/data-distribution-tool/): Analyzes data distribution patterns and field value frequencies within OpenSearch indices. Supports both single dataset analysis and comparative analysis between two time periods to identify distribution changes.
+- [LogPatternAnalysisTool](https://docs.opensearch.org/latest/ml-commons-plugin/agents-tools/tools/log-pattern-analysis-tool/): Detects anomalous log patterns and sequences through comparative analysis between baseline and selection time ranges. Supports log sequence analysis with trace correlation, log pattern difference analysis, and log insights analysis for error detection.
 
 ### Tool Parameters
 
@@ -86,6 +93,8 @@ The following tools are available but disabled by default. To enable them, see t
   - `opensearch_url` (optional): The OpenSearch cluster URL to connect to
   - `index` (required): The name of the index to search in
   - `query` (required): The search query in OpenSearch Query DSL format
+  - `format` (optional): The format of SearchIndexTool response. options are csv and json
+  - `size` (optional): The size of SearchIndexTool response. Default is 10, maximum is 100 (configurable). To change the maximum limit, set `max_size_limit` via CLI arguments or config file. See [Tool Customization](USER_GUIDE.md#tool-customization) for details.
 
 - **GetShardsTool**
   - `opensearch_url` (optional): The OpenSearch cluster URL to connect to
@@ -233,6 +242,27 @@ The following tools are available but disabled by default. To enable them, see t
   - `memory_container_id` (required): The ID of the memory container from which to delete the memory. *(Path Parameter)*
   - `type` (required): The type of memory to delete. Valid values are `sessions`, `working`, `long-term`, and `history`. *(Path Parameter)*
   - `query` (required): The OpenSearch [DSL query](https://docs.opensearch.org/latest/query-dsl/) to match memories for deletion. *(Body Parameter)*
+
+- **DataDistributionTool**
+
+  - `index` (required): Target OpenSearch index name.
+  - `selectionTimeRangeStart` (required): Start time for analysis target period.
+  - `selectionTimeRangeEnd` (required): End time for analysis target period.
+  - `timeField` (required): Date/time field for filtering.
+  - `baselineTimeRangeStart` (optional): Start time for baseline period.
+  - `baselineTimeRangeEnd` (optional): End time for baseline period.
+  - `size` (optional): Maximum number of documents to analyze. Default is 1000.
+
+- **LogPatternAnalysisTool**
+
+  - `index` (required): Target OpenSearch index name containing log data.
+  - `logFieldName` (required): Field containing raw log messages to analyze.
+  - `selectionTimeRangeStart` (required): Start time for analysis target period.
+  - `selectionTimeRangeEnd` (required): End time for analysis target period.
+  - `timeField` (required): Date/time field for time-based filtering.
+  - `traceFieldName` (optional): Field for trace/correlation ID.
+  - `baseTimeRangeStart` (optional): Start time for baseline comparison period.
+  - `baseTimeRangeEnd` (optional): End time for baseline comparison period.
 
 > More tools coming soon. [Click here](DEVELOPER_GUIDE.md#contributing)
 
