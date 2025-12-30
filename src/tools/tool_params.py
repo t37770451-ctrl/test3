@@ -81,7 +81,7 @@ class SearchIndexArgs(baseToolArgs):
     index: str = Field(description='The name of the index to search in')
     query: Any = Field(description='The search query in OpenSearch query DSL format. REQUIRED: For any range query on date/time fields, please always include: "format": "strict_date_optional_time||epoch_millis". For text fields, use a "match" query for analyzed text search, e.g.: {"match": {"message": "error"}}. For exact matches on text fields with keyword subfields, use the ".keyword" suffix with a "term" query, e.g.: {"term": {"status.keyword": "ERROR"}}.')
     format: str = Field(default='json', description='Output format: "json" or "csv"')
-    size: int = Field(default=10, description='Number of search results to return. The maximum allowed value is 100, unless overridden by configuration. ')
+    size: int = Field(default=10, description='Number of search results to return. The maximum allowed value is 100, unless overridden by configuration.')
 
 
 class GetShardsArgs(baseToolArgs):
