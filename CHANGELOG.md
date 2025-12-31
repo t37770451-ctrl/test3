@@ -7,6 +7,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Fixed
 - Fix _fallback_perform_request using wrong url ([#157](https://github.com/opensearch-project/opensearch-mcp-server-py/pull/157))
+- Fix search index tool time format issue. ([#159](https://github.com/opensearch-project/opensearch-mcp-server-py/pull/159))
 
 ### Removed
 
@@ -15,8 +16,6 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Support to define max response size from opensearch cluster for better memory management ([#151](https://github.com/opensearch-project/opensearch-mcp-server-py/pull/151))
 
 ### Fixed
-- Fix _fallback_perform_request using wrong url
-- Fix search index tool time format issue. ([#159](https://github.com/opensearch-project/opensearch-mcp-server-py/pull/159))
 
 ### Removed
 
