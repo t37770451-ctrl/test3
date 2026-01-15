@@ -121,7 +121,7 @@ async def search_index_tool(args: SearchIndexArgs) -> list[dict]:
                 }
             ]
         else:
-            formatted_result = json.dumps(result, indent=2)
+            formatted_result = json.dumps(result, indent=2, ensure_ascii=False)
             return [
                 {
                     'type': 'text',
