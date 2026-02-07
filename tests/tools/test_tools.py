@@ -1135,7 +1135,7 @@ class TestTools:
         assert result[0]['type'] == 'text'
         assert 'Detailed node information for nodes: master:true' in result[0]['text']
         assert '(metrics: process,transport)' in result[0]['text']
-        assert '"name": "master-node"' in result[0]['text']
+        assert '"name":"master-node"' in result[0]['text']
         self.mock_client.transport.perform_request.assert_called_once_with(
             method='GET', url='/_nodes/master:true/process,transport'
         )
