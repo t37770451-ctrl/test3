@@ -20,7 +20,7 @@ from starlette.requests import Request
 
 from mcp_server_opensearch.clusters_information import ClusterInfo, get_cluster
 from mcp_server_opensearch.global_state import get_mode, get_profile
-from opensearchpy import AsyncOpenSearch, AsyncHttpConnection, AWSV4SignerAsyncAuth
+from opensearchpy import AsyncOpenSearch, AWSV4SignerAsyncAuth
 from tools.tool_params import baseToolArgs
 from botocore.credentials import Credentials
 
@@ -34,11 +34,8 @@ DEFAULT_TIMEOUT = 30
 DEFAULT_SSL_VERIFY = True
 
 
-# Custom exceptions
-class OpenSearchClientError(Exception):
-    """Base exception for OpenSearch client errors."""
-
-    pass
+# Import custom connection classes and exceptions
+from .connection import BufferedAsyncHttpConnection, ResponseSizeExceededError, OpenSearchClientError, DEFAULT_MAX_RESPONSE_SIZE
 
 
 class AuthenticationError(OpenSearchClientError):
@@ -154,6 +151,7 @@ def _initialize_client_single_mode() -> AsyncOpenSearch:
     When OPENSEARCH_HEADER_AUTH=true, headers are preferred:
     - opensearch-url, aws-region, aws-access-key-id, aws-secret-access-key,
       aws-session-token, aws-service-name
+    - Authorization: For Basic auth (format: Basic <base64(username:password)>)
 
     Returns:
         OpenSearch: An initialized OpenSearch client instance
@@ -175,6 +173,18 @@ def _initialize_client_single_mode() -> AsyncOpenSearch:
         opensearch_timeout_str = os.getenv('OPENSEARCH_TIMEOUT', '').strip()
         opensearch_timeout = int(opensearch_timeout_str) if opensearch_timeout_str else None
         ssl_verify = os.getenv('OPENSEARCH_SSL_VERIFY', 'true').lower() != 'false'
+        
+        # Parse max response size from environment
+        max_response_size_str = os.getenv('OPENSEARCH_MAX_RESPONSE_SIZE', '').strip()
+        max_response_size = None
+        if max_response_size_str:
+            try:
+                max_response_size = int(max_response_size_str)
+                if max_response_size <= 0:
+                    logger.warning(f'Invalid OPENSEARCH_MAX_RESPONSE_SIZE value {max_response_size}, using default')
+                    max_response_size = None
+            except ValueError:
+                logger.warning(f'Invalid OPENSEARCH_MAX_RESPONSE_SIZE format: {max_response_size_str}, using default')
         aws_access_key_id = None
         aws_secret_access_key = None
         aws_session_token = None
@@ -199,6 +209,12 @@ def _initialize_client_single_mode() -> AsyncOpenSearch:
             header_region = header_auth.get('aws_region')
             if header_region:
                 aws_region = header_region
+            # Override Basic auth credentials if provided in headers
+            header_username = header_auth.get('opensearch_username')
+            header_password = header_auth.get('opensearch_password')
+            if header_username and header_password:
+                opensearch_username = header_username
+                opensearch_password = header_password
 
         # Validate URL after potential header override (must come from either env or headers)
         if not opensearch_url or not opensearch_url.strip():
@@ -229,6 +245,7 @@ def _initialize_client_single_mode() -> AsyncOpenSearch:
             aws_access_key_id=aws_access_key_id,
             aws_secret_access_key=aws_secret_access_key,
             aws_session_token=aws_session_token,
+            max_response_size=max_response_size,
         )
 
     except (ConfigurationError, AuthenticationError):
@@ -274,6 +291,20 @@ def _initialize_client_multi_mode(cluster_info: ClusterInfo) -> AsyncOpenSearch:
         ssl_verify = True  # Default to secure
         if cluster_info.ssl_verify is not None:
             ssl_verify = cluster_info.ssl_verify
+        
+        # Get max response size from cluster config, fallback to environment variable
+        max_response_size = cluster_info.max_response_size
+        if max_response_size is None:
+            max_response_size_str = os.getenv('OPENSEARCH_MAX_RESPONSE_SIZE', '').strip()
+            if max_response_size_str:
+                try:
+                    max_response_size = int(max_response_size_str)
+                    if max_response_size <= 0:
+                        logger.warning(f'Invalid OPENSEARCH_MAX_RESPONSE_SIZE value {max_response_size}, using default')
+                        max_response_size = None
+                except ValueError:
+                    logger.warning(f'Invalid OPENSEARCH_MAX_RESPONSE_SIZE format: {max_response_size_str}, using default')
+        
         aws_access_key_id = None
         aws_secret_access_key = None
         aws_session_token = None
@@ -298,6 +329,12 @@ def _initialize_client_multi_mode(cluster_info: ClusterInfo) -> AsyncOpenSearch:
             header_region = header_auth.get('aws_region')
             if header_region:
                 aws_region = header_region
+            # Override Basic auth credentials if provided in headers
+            header_username = header_auth.get('opensearch_username')
+            header_password = header_auth.get('opensearch_password')
+            if header_username and header_password:
+                opensearch_username = header_username
+                opensearch_password = header_password
 
         # Use common client creation function
         return _create_opensearch_client(
@@ -314,6 +351,7 @@ def _initialize_client_multi_mode(cluster_info: ClusterInfo) -> AsyncOpenSearch:
             aws_access_key_id=aws_access_key_id,
             aws_secret_access_key=aws_secret_access_key,
             aws_session_token=aws_session_token,
+            max_response_size=max_response_size,
         )
 
     except (ConfigurationError, AuthenticationError):
@@ -341,6 +379,7 @@ def _create_opensearch_client(
     aws_access_key_id: Optional[str] = None,
     aws_secret_access_key: Optional[str] = None,
     aws_session_token: Optional[str] = None,
+    max_response_size: Optional[int] = None,
 ) -> AsyncOpenSearch:
     """Common function to create OpenSearch client with authentication.
 
@@ -361,6 +400,7 @@ def _create_opensearch_client(
         aws_access_key_id: AWS access key ID from headers (optional)
         aws_secret_access_key: AWS secret access key from headers (optional)
         aws_session_token: AWS session token from headers (optional)
+        max_response_size: Maximum response size in bytes (None means no limit)
 
     Returns:
         OpenSearch: An initialized OpenSearch client instance
@@ -368,6 +408,7 @@ def _create_opensearch_client(
     Raises:
         ConfigurationError: If opensearch_url is missing or invalid
         AuthenticationError: If authentication fails
+        ResponseSizeExceededError: If response exceeds max_response_size
     """
     # Validate inputs
     if not opensearch_url or not opensearch_url.strip():
@@ -395,14 +436,23 @@ def _create_opensearch_client(
         logger.warning(f'Invalid timeout value {timeout}, using default {DEFAULT_TIMEOUT}')
         timeout = DEFAULT_TIMEOUT
 
-    # Build client configuration
+    # Determine response size limit
+    response_size_limit = max_response_size if max_response_size is not None else DEFAULT_MAX_RESPONSE_SIZE
+    
+    # Build client configuration with buffered connection
     client_kwargs: Dict[str, Any] = {
         'hosts': [opensearch_url],
         'use_ssl': (parsed_url.scheme == 'https'),
         'verify_certs': ssl_verify,
-        'connection_class': AsyncHttpConnection,
+        'connection_class': BufferedAsyncHttpConnection,
         'timeout': timeout,
+        'max_response_size': response_size_limit,
     }
+    
+    if response_size_limit is not None:
+        logger.info(f'Configuring OpenSearch client with max_response_size={response_size_limit} bytes')
+    else:
+        logger.info('Configuring OpenSearch client with no response size limit')
 
     # Create boto3 session
     try:
@@ -620,6 +670,8 @@ def _get_auth_from_headers() -> Dict[str, Optional[str]]:
         - aws_secret_access_key: AWS secret access key
         - aws_session_token: AWS session token
         - aws_service_name: AWS service name (es or aoss)
+        - opensearch_username: Username from Basic auth (Authorization header)
+        - opensearch_password: Password from Basic auth (Authorization header)
         All values are None if headers are not available or not set.
     """
     result: Dict[str, Optional[str]] = {
@@ -629,6 +681,8 @@ def _get_auth_from_headers() -> Dict[str, Optional[str]]:
         'aws_secret_access_key': None,
         'aws_session_token': None,
         'aws_service_name': None,
+        'opensearch_username': None,
+        'opensearch_password': None,
     }
 
     try:
@@ -645,6 +699,21 @@ def _get_auth_from_headers() -> Dict[str, Optional[str]]:
                 )
                 result['aws_session_token'] = headers.get('aws-session-token', '').strip() or None
                 result['aws_service_name'] = headers.get('aws-service-name', '').strip() or None
+                
+                # Extract Basic auth from Authorization header
+                auth_header = headers.get('authorization', '').strip()
+                if auth_header and auth_header.lower().startswith('basic '):
+                    import base64
+                    # Extract the base64 encoded credentials
+                    encoded_credentials = auth_header[6:]  # Skip 'Basic '
+                    decoded_bytes = base64.b64decode(encoded_credentials)
+                    decoded_credentials = decoded_bytes.decode('utf-8')
+                    
+                    # Split into username and password
+                    if ':' in decoded_credentials:
+                        username, password = decoded_credentials.split(':', 1)
+                        result['opensearch_username'] = username
+                        result['opensearch_password'] = password
     except Exception as e:
         logger.debug(f'Could not read headers from request context: {e}')
 
