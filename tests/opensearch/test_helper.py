@@ -539,3 +539,105 @@ class TestOpenSearchHelper:
         result = normalize_scientific_notation(query_dsl)
         assert "1732693003000" in json.dumps(result)
         assert "173.5" in json.dumps(result)
+
+
+class TestSearchConfigurationHelpers:
+    def setup_method(self):
+        """Setup that runs before each test method."""
+        from opensearch.helper import (
+            create_search_configuration,
+            delete_search_configuration,
+            get_search_configuration,
+        )
+
+        self.create_search_configuration = create_search_configuration
+        self.get_search_configuration = get_search_configuration
+        self.delete_search_configuration = delete_search_configuration
+
+    @pytest.mark.asyncio
+    @patch('opensearch.client.get_opensearch_client')
+    async def test_create_search_configuration(self, mock_get_client):
+        """Test create_search_configuration calls put_search_configurations with correct body."""
+        from tools.tool_params import CreateSearchConfigurationArgs
+
+        mock_response = {'_id': 'cfg-1', 'result': 'created'}
+        mock_client = AsyncMock()
+        mock_client.plugins = AsyncMock()
+        mock_client.plugins.search_relevance = AsyncMock()
+        mock_client.plugins.search_relevance.put_search_configurations = AsyncMock(
+            return_value=mock_response
+        )
+
+        mock_get_client.return_value.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_get_client.return_value.__aexit__ = AsyncMock(return_value=None)
+
+        args = CreateSearchConfigurationArgs(
+            name='my-config',
+            index='my-index',
+            query='{"query":{"match":{"title":"%SearchText%"}}}',
+            opensearch_cluster_name='',
+        )
+        result = await self.create_search_configuration(args)
+
+        assert result == mock_response
+        mock_client.plugins.search_relevance.put_search_configurations.assert_called_once_with(
+            body={
+                'name': 'my-config',
+                'index': 'my-index',
+                'query': '{"query":{"match":{"title":"%SearchText%"}}}',
+            }
+        )
+
+    @pytest.mark.asyncio
+    @patch('opensearch.client.get_opensearch_client')
+    async def test_get_search_configuration(self, mock_get_client):
+        """Test get_search_configuration calls get_search_configurations with correct ID."""
+        from tools.tool_params import GetSearchConfigurationArgs
+
+        mock_response = {'_id': 'cfg-1', '_source': {'name': 'my-config', 'index': 'my-index'}}
+        mock_client = AsyncMock()
+        mock_client.plugins = AsyncMock()
+        mock_client.plugins.search_relevance = AsyncMock()
+        mock_client.plugins.search_relevance.get_search_configurations = AsyncMock(
+            return_value=mock_response
+        )
+
+        mock_get_client.return_value.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_get_client.return_value.__aexit__ = AsyncMock(return_value=None)
+
+        args = GetSearchConfigurationArgs(
+            search_configuration_id='cfg-1', opensearch_cluster_name=''
+        )
+        result = await self.get_search_configuration(args)
+
+        assert result == mock_response
+        mock_client.plugins.search_relevance.get_search_configurations.assert_called_once_with(
+            search_configuration_id='cfg-1'
+        )
+
+    @pytest.mark.asyncio
+    @patch('opensearch.client.get_opensearch_client')
+    async def test_delete_search_configuration(self, mock_get_client):
+        """Test delete_search_configuration calls delete_search_configurations with correct ID."""
+        from tools.tool_params import DeleteSearchConfigurationArgs
+
+        mock_response = {'result': 'deleted'}
+        mock_client = AsyncMock()
+        mock_client.plugins = AsyncMock()
+        mock_client.plugins.search_relevance = AsyncMock()
+        mock_client.plugins.search_relevance.delete_search_configurations = AsyncMock(
+            return_value=mock_response
+        )
+
+        mock_get_client.return_value.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_get_client.return_value.__aexit__ = AsyncMock(return_value=None)
+
+        args = DeleteSearchConfigurationArgs(
+            search_configuration_id='cfg-1', opensearch_cluster_name=''
+        )
+        result = await self.delete_search_configuration(args)
+
+        assert result == mock_response
+        mock_client.plugins.search_relevance.delete_search_configurations.assert_called_once_with(
+            search_configuration_id='cfg-1'
+        )
