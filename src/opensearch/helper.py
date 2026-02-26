@@ -55,6 +55,9 @@ async def search_index(args: SearchIndexArgs) -> json:
     from .client import get_opensearch_client
     from tools.tools import TOOL_REGISTRY
 
+    if isinstance(args.query, str):
+        validate_json_string(args.query)
+
     async with get_opensearch_client(args) as client:
         query = normalize_scientific_notation(args.query)
         
@@ -507,6 +510,8 @@ async def create_search_configuration(args: CreateSearchConfigurationArgs) -> js
     """
     from .client import get_opensearch_client
 
+    validate_json_string(args.query)
+
     async with get_opensearch_client(args) as client:
         body = {
             'name': args.name,
@@ -551,6 +556,27 @@ async def delete_search_configuration(args: DeleteSearchConfigurationArgs) -> js
             search_configuration_id=args.search_configuration_id
         )
         return response
+
+
+def validate_json_string(value: str) -> None:
+    """Validate that a string is valid JSON, raising ValueError with a concise message if not.
+
+    Intended to be called early (before any API call) so the LLM receives a small,
+    precise error rather than a verbose OpenSearch response.
+
+    Args:
+        value: The string to validate as JSON.
+
+    Raises:
+        ValueError: If the string is not valid JSON. The message includes the parse
+            error description, line, and column so the problem is immediately obvious.
+    """
+    try:
+        json.loads(value)
+    except json.JSONDecodeError as e:
+        raise ValueError(
+            f"query is not valid JSON: {e.msg} (line {e.lineno}, col {e.colno})"
+        ) from e
 
 
 def normalize_scientific_notation(body):

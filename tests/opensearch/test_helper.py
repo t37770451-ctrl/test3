@@ -541,6 +541,98 @@ class TestOpenSearchHelper:
         assert "173.5" in json.dumps(result)
 
 
+class TestValidateJsonString:
+    def setup_method(self):
+        from opensearch.helper import validate_json_string
+
+        self.validate = validate_json_string
+
+    # --- valid inputs (should not raise) ---
+
+    def test_valid_object(self):
+        self.validate('{"query": {"match_all": {}}}')
+
+    def test_valid_empty_object(self):
+        self.validate('{}')
+
+    def test_valid_array(self):
+        self.validate('[1, 2, 3]')
+
+    def test_valid_nested_object(self):
+        self.validate('{"a": {"b": {"c": 42}}}')
+
+    def test_valid_with_whitespace(self):
+        self.validate('  { "key" : "value" }  ')
+
+    def test_valid_with_newlines(self):
+        self.validate('{\n  "query": {\n    "match_all": {}\n  }\n}')
+
+    def test_valid_types(self):
+        # booleans, null, numbers
+        self.validate('{"flag": true, "missing": null, "count": 99}')
+
+    def test_valid_search_config_query(self):
+        self.validate('{"query":{"match":{"title":"%SearchText%"}}}')
+
+    # --- invalid inputs (should raise ValueError) ---
+
+    def test_invalid_trailing_comma(self):
+        with pytest.raises(ValueError) as exc_info:
+            self.validate('{"query": {"match_all": {}},}')
+        assert 'query is not valid JSON' in str(exc_info.value)
+
+    def test_invalid_single_quotes(self):
+        with pytest.raises(ValueError) as exc_info:
+            self.validate("{'key': 'value'}")
+        assert 'query is not valid JSON' in str(exc_info.value)
+
+    def test_invalid_unquoted_key(self):
+        with pytest.raises(ValueError) as exc_info:
+            self.validate('{key: "value"}')
+        assert 'query is not valid JSON' in str(exc_info.value)
+
+    def test_invalid_unclosed_brace(self):
+        with pytest.raises(ValueError) as exc_info:
+            self.validate('{"query": {"match_all": {}')
+        assert 'query is not valid JSON' in str(exc_info.value)
+
+    def test_invalid_empty_string(self):
+        with pytest.raises(ValueError) as exc_info:
+            self.validate('')
+        assert 'query is not valid JSON' in str(exc_info.value)
+
+    def test_invalid_plain_text(self):
+        with pytest.raises(ValueError) as exc_info:
+            self.validate('not json at all')
+        assert 'query is not valid JSON' in str(exc_info.value)
+
+    def test_invalid_bad_escape(self):
+        with pytest.raises(ValueError) as exc_info:
+            self.validate('{"key": "bad\\escape"}')
+        assert 'query is not valid JSON' in str(exc_info.value)
+
+    def test_error_message_includes_location(self):
+        """Error message should contain line and column so the problem is easy to pinpoint."""
+        with pytest.raises(ValueError) as exc_info:
+            self.validate('{"a": 1,\n"b": 2,\n"c": }')
+        msg = str(exc_info.value)
+        assert 'line' in msg
+        assert 'col' in msg
+
+    def test_error_message_format(self):
+        """ValueError should be raised (not json.JSONDecodeError directly)."""
+        with pytest.raises(ValueError):
+            self.validate('{bad}')
+
+    def test_cause_is_json_decode_error(self):
+        """The ValueError should chain the original JSONDecodeError."""
+        import json as _json
+
+        with pytest.raises(ValueError) as exc_info:
+            self.validate('{bad}')
+        assert isinstance(exc_info.value.__cause__, _json.JSONDecodeError)
+
+
 class TestSearchConfigurationHelpers:
     def setup_method(self):
         """Setup that runs before each test method."""
