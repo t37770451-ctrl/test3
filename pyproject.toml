@@ -16,7 +16,7 @@ dependencies = [
 ]
 
 license = "Apache-2.0"
-license-files = ["LICENSE", "NOTICE" ]
+license-files = ["LICENSE.txt", "NOTICE.txt"]
 
 [dependency-groups]
 dev = [
