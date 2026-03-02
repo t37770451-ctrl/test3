@@ -4,6 +4,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## [Unreleased]
 
+## [Released 0.8.0]
 ### Added
 
 - Optimize JSON output token usage by removing formatting whitespace across all tools ([#167](https://github.com/opensearch-project/opensearch-mcp-server-py/pull/167))
@@ -11,6 +12,18 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Add structured JSON logging (`--log-format json`) for monitoring and metrics ([#178](https://github.com/opensearch-project/opensearch-mcp-server-py/pull/178))
 
 ### Fixed
+
+- Fix SearchIndexTool `AttributeError` after `query` to `query_dsl` rename ([#176](https://github.com/opensearch-project/opensearch-mcp-server-py/pull/176))
+
+### Dependencies
+
+- Bump `aiohttp` from 3.11.18 to 3.13.3 ([#175](https://github.com/opensearch-project/opensearch-mcp-server-py/pull/175))
+- Bump `mcp` from 1.9.4 to 1.23.0 ([#180](https://github.com/opensearch-project/opensearch-mcp-server-py/pull/180))
+- Bump `starlette` from 0.46.2 to 0.49.1 ([#181](https://github.com/opensearch-project/opensearch-mcp-server-py/pull/181))
+- Bump `h11` from 0.14.0 to 0.16.0 ([#182](https://github.com/opensearch-project/opensearch-mcp-server-py/pull/182))
+- Bump `requests` from 2.32.3 to 2.32.4 ([#183](https://github.com/opensearch-project/opensearch-mcp-server-py/pull/183))
+- Bump `python-multipart` from 0.0.20 to 0.0.22 ([#173](https://github.com/opensearch-project/opensearch-mcp-server-py/pull/173))
+- Bump `urllib3` from 2.4.0 to 2.6.3 ([#174](https://github.com/opensearch-project/opensearch-mcp-server-py/pull/174))
 
 ### Removed
 
