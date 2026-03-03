@@ -67,6 +67,10 @@ Search Relevance Workbench tools are grouped under the `search_relevance` catego
 - [CreateSearchConfigurationTool](https://docs.opensearch.org/latest/search-plugins/search-relevance/search-configurations/#creating-search-configurations): Creates a search configuration consisting of a name, a query body (a query in OpenSearch query domain-specific language), and the target index.
 - [GetSearchConfigurationTool](https://docs.opensearch.org/latest/search-plugins/search-relevance/search-configurations/#retrieve-search-configurations): Retrieves a search configuration by ID.
 - [DeleteSearchConfigurationTool](https://docs.opensearch.org/latest/search-plugins/search-relevance/search-configurations/#delete-a-search-configuration): Deletes a search configuration by ID.
+- [CreateQuerySetTool](https://docs.opensearch.org/latest/search-plugins/search-relevance/query-sets/#example-request-uploading-a-query-set-manually): Creates a query set consisting of a name, a description, and a list of queries.
+- [SampleQuerySetTool](https://docs.opensearch.org/latest/search-plugins/search-relevance/query-sets/#creating-query-sets): Samples a query set based on UBI data with different statistical sampling techniques.
+- [GetQuerySetTool](https://docs.opensearch.org/latest/search-plugins/search-relevance/query-sets/#retrieve-query-sets): Retrieves a query set by ID.
+- [DeleteQuerySetTool](https://docs.opensearch.org/latest/search-plugins/search-relevance/query-sets/#delete-a-query-set): Deletes a query set by ID.
 
 ### Skills Tools (Enabled by Default)
 
