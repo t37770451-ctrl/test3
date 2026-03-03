@@ -3,6 +3,9 @@
 Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## [Unreleased]
+### Added
+
+- Add Search Relevance Workbench tools for query set management (add, get, delete) ([#187](https://github.com/opensearch-project/opensearch-mcp-server-py/pull/187))
 
 ## [Released 0.8.0]
 ### Added
