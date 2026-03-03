@@ -295,3 +295,72 @@ class DeleteSearchConfigurationArgs(baseToolArgs):
 
     class Config:
         json_schema_extra = {'examples': [{'search_configuration_id': 'abc123'}]}
+
+
+class GetQuerySetArgs(baseToolArgs):
+    """Arguments for the GetQuerySetTool."""
+
+    query_set_id: str = Field(description='ID of the query set to retrieve')
+
+    class Config:
+        json_schema_extra = {
+            'examples': [
+                {'query_set_id': 'my-query-set-id'},
+            ]
+        }
+
+
+class CreateQuerySetArgs(baseToolArgs):
+    """Arguments for the CreateQuerySetTool."""
+
+    name: str = Field(description='Name of the query set')
+    queries: str = Field(
+        description='JSON array of queries, e.g. ["query1", "query2"] or [{"queryText": "query1"}]'
+    )
+    description: str = Field(default='', description='Optional description of the query set')
+
+    class Config:
+        json_schema_extra = {
+            'examples': [
+                {
+                    'name': 'my-query-set',
+                    'queries': '["laptop", "wireless headphones", "4k monitor"]',
+                    'description': 'Sample product search queries',
+                },
+            ]
+        }
+
+
+class SampleQuerySetArgs(baseToolArgs):
+    """Arguments for the SampleQuerySetTool."""
+
+    name: str = Field(description='Name of the query set')
+    query_set_size: int = Field(
+        default=20, description='Number of top queries to sample (default: 20)', ge=1
+    )
+    description: str = Field(default='', description='Optional description of the query set')
+
+    class Config:
+        json_schema_extra = {
+            'examples': [
+                {'name': 'top-queries', 'query_set_size': 20},
+                {
+                    'name': 'top-50-queries',
+                    'query_set_size': 50,
+                    'description': 'Top 50 most frequent user queries',
+                },
+            ]
+        }
+
+
+class DeleteQuerySetArgs(baseToolArgs):
+    """Arguments for the DeleteQuerySetTool."""
+
+    query_set_id: str = Field(description='ID of the query set to delete')
+
+    class Config:
+        json_schema_extra = {
+            'examples': [
+                {'query_set_id': 'my-query-set-id'},
+            ]
+        }

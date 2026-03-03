@@ -20,6 +20,10 @@ from .tool_params import (
     GetShardsArgs,
     ListIndicesArgs,
     SearchIndexArgs,
+    GetQuerySetArgs,
+    CreateQuerySetArgs,
+    SampleQuerySetArgs,
+    DeleteQuerySetArgs,
     baseToolArgs,
 )
 from .tool_logging import log_tool_error
@@ -45,6 +49,10 @@ from opensearch.helper import (
     get_shards,
     list_indices,
     search_index,
+    get_query_set,
+    create_query_set,
+    sample_query_set,
+    delete_query_set,
 )
 from .skills_tools import SKILLS_TOOLS_REGISTRY
 
@@ -558,6 +566,78 @@ async def delete_search_configuration_tool(args: DeleteSearchConfigurationArgs) 
         return log_tool_error('DeleteSearchConfigurationTool', e, 'deleting search configuration')
 
 
+async def get_query_set_tool(args: GetQuerySetArgs) -> list[dict]:
+    """Tool to retrieve a specific query set by ID from the Search Relevance plugin.
+
+    Args:
+        args: GetQuerySetArgs containing the query_set_id
+
+    Returns:
+        list[dict]: Query set details in MCP format
+    """
+    try:
+        await check_tool_compatibility('GetQuerySetTool', args)
+        result = await get_query_set(args)
+        formatted_result = json.dumps(result, separators=(',', ':'))
+        return [{'type': 'text', 'text': f'Query set {args.query_set_id}:\n{formatted_result}'}]
+    except Exception as e:
+        return [{'type': 'text', 'text': f'Error retrieving query set: {str(e)}'}]
+
+
+async def create_query_set_tool(args: CreateQuerySetArgs) -> list[dict]:
+    """Tool to create a new query set with a list of queries.
+
+    Args:
+        args: CreateQuerySetArgs containing name, queries (JSON string), and optional description
+
+    Returns:
+        list[dict]: Result of the creation operation in MCP format
+    """
+    try:
+        await check_tool_compatibility('CreateQuerySetTool', args)
+        result = await create_query_set(args)
+        formatted_result = json.dumps(result, separators=(',', ':'))
+        return [{'type': 'text', 'text': f'Query set created:\n{formatted_result}'}]
+    except Exception as e:
+        return [{'type': 'text', 'text': f'Error creating query set: {str(e)}'}]
+
+
+async def sample_query_set_tool(args: SampleQuerySetArgs) -> list[dict]:
+    """Tool to create a query set by sampling top queries from user behavior data (UBI).
+
+    Args:
+        args: SampleQuerySetArgs containing name, query_set_size, and optional description
+
+    Returns:
+        list[dict]: Result of the sampling operation in MCP format
+    """
+    try:
+        await check_tool_compatibility('SampleQuerySetTool', args)
+        result = await sample_query_set(args)
+        formatted_result = json.dumps(result, separators=(',', ':'))
+        return [{'type': 'text', 'text': f'Query set sampled:\n{formatted_result}'}]
+    except Exception as e:
+        return [{'type': 'text', 'text': f'Error sampling query set: {str(e)}'}]
+
+
+async def delete_query_set_tool(args: DeleteQuerySetArgs) -> list[dict]:
+    """Tool to delete a query set by ID.
+
+    Args:
+        args: DeleteQuerySetArgs containing the query_set_id
+
+    Returns:
+        list[dict]: Result of the deletion operation in MCP format
+    """
+    try:
+        await check_tool_compatibility('DeleteQuerySetTool', args)
+        result = await delete_query_set(args)
+        formatted_result = json.dumps(result, separators=(',', ':'))
+        return [{'type': 'text', 'text': f'Query set {args.query_set_id} deleted:\n{formatted_result}'}]
+    except Exception as e:
+        return [{'type': 'text', 'text': f'Error deleting query set: {str(e)}'}]
+
+
 from .generic_api_tool import GenericOpenSearchApiArgs, generic_opensearch_api_tool
 
 
@@ -686,6 +766,42 @@ TOOL_REGISTRY = {
         'args_model': GetNodesArgs,
         'min_version': '1.0.0',
         'http_methods': 'GET',
+    },
+    'GetQuerySetTool': {
+        'display_name': 'GetQuerySetTool',
+        'description': 'Retrieves a specific query set by ID from the OpenSearch Search Relevance plugin. Query sets are collections of search queries used for relevance testing and evaluation.',
+        'input_schema': GetQuerySetArgs.model_json_schema(),
+        'function': get_query_set_tool,
+        'args_model': GetQuerySetArgs,
+        'min_version': '3.1.0',
+        'http_methods': 'GET',
+    },
+    'CreateQuerySetTool': {
+        'display_name': 'CreateQuerySetTool',
+        'description': 'Creates a new query set in the OpenSearch Search Relevance plugin by providing a list of queries. Query sets are used for relevance testing and evaluation.',
+        'input_schema': CreateQuerySetArgs.model_json_schema(),
+        'function': create_query_set_tool,
+        'args_model': CreateQuerySetArgs,
+        'min_version': '3.1.0',
+        'http_methods': 'PUT',
+    },
+    'SampleQuerySetTool': {
+        'display_name': 'SampleQuerySetTool',
+        'description': 'Creates a query set by sampling the top N most frequent queries from user behavior data (UBI indices) in the OpenSearch Search Relevance plugin.',
+        'input_schema': SampleQuerySetArgs.model_json_schema(),
+        'function': sample_query_set_tool,
+        'args_model': SampleQuerySetArgs,
+        'min_version': '3.1.0',
+        'http_methods': 'POST',
+    },
+    'DeleteQuerySetTool': {
+        'display_name': 'DeleteQuerySetTool',
+        'description': 'Deletes a query set by ID from the OpenSearch Search Relevance plugin.',
+        'input_schema': DeleteQuerySetArgs.model_json_schema(),
+        'function': delete_query_set_tool,
+        'args_model': DeleteQuerySetArgs,
+        'min_version': '3.1.0',
+        'http_methods': 'DELETE',
     },
     'GenericOpenSearchApiTool': {
         'display_name': 'GenericOpenSearchApiTool',
