@@ -309,9 +309,8 @@ async def get_query_set(args: GetQuerySetArgs) -> json:
     from .client import get_opensearch_client
 
     async with get_opensearch_client(args) as client:
-        response = await client.transport.perform_request(
-            method='GET',
-            url=f'/_plugins/_search_relevance/query_sets/{args.query_set_id}',
+        response = await client.plugins.search_relevance.get_query_sets(
+            query_set_id=args.query_set_id
         )
         return response
 
@@ -352,11 +351,7 @@ async def create_query_set(args: CreateQuerySetArgs) -> json:
     }
 
     async with get_opensearch_client(args) as client:
-        response = await client.transport.perform_request(
-            method='PUT',
-            url='/_plugins/_search_relevance/query_sets',
-            body=body,
-        )
+        response = await client.plugins.search_relevance.put_query_sets(body=body)
         return response
 
 
@@ -379,11 +374,7 @@ async def sample_query_set(args: SampleQuerySetArgs) -> json:
     }
 
     async with get_opensearch_client(args) as client:
-        response = await client.transport.perform_request(
-            method='POST',
-            url='/_plugins/_search_relevance/query_sets',
-            body=body,
-        )
+        response = await client.plugins.search_relevance.post_query_sets(body=body)
         return response
 
 
@@ -399,9 +390,8 @@ async def delete_query_set(args: DeleteQuerySetArgs) -> json:
     from .client import get_opensearch_client
 
     async with get_opensearch_client(args) as client:
-        response = await client.transport.perform_request(
-            method='DELETE',
-            url=f'/_plugins/_search_relevance/query_sets/{args.query_set_id}',
+        response = await client.plugins.search_relevance.delete_query_sets(
+            query_set_id=args.query_set_id
         )
         return response
 

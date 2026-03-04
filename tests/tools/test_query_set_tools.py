@@ -1,7 +1,6 @@
 # Copyright OpenSearch Contributors
 # SPDX-License-Identifier: Apache-2.0
 
-import json
 import pytest
 from unittest.mock import Mock, patch, AsyncMock
 
@@ -10,8 +9,14 @@ class TestQuerySetTools:
     def setup_method(self):
         """Setup that runs before each test method."""
         self.mock_client = Mock()
-        self.mock_client.transport.perform_request = AsyncMock(return_value={})
         self.mock_client.info = AsyncMock(return_value={'version': {'number': '3.1.0'}})
+
+        self.mock_client.plugins = Mock()
+        self.mock_client.plugins.search_relevance = Mock()
+        self.mock_client.plugins.search_relevance.get_query_sets = AsyncMock(return_value={})
+        self.mock_client.plugins.search_relevance.put_query_sets = AsyncMock(return_value={})
+        self.mock_client.plugins.search_relevance.post_query_sets = AsyncMock(return_value={})
+        self.mock_client.plugins.search_relevance.delete_query_sets = AsyncMock(return_value={})
 
         self.init_client_patcher = patch(
             'opensearch.client.initialize_client', return_value=self.mock_client
@@ -59,7 +64,7 @@ class TestQuerySetTools:
                 'querySetQueries': [{'queryText': 'laptop'}],
             },
         }
-        self.mock_client.transport.perform_request.return_value = mock_response
+        self.mock_client.plugins.search_relevance.get_query_sets.return_value = mock_response
 
         result = await self._get_query_set_tool(
             self.GetQuerySetArgs(opensearch_cluster_name='', query_set_id=query_set_id)
@@ -69,15 +74,16 @@ class TestQuerySetTools:
         assert result[0]['type'] == 'text'
         assert query_set_id in result[0]['text']
         assert 'my-query-set' in result[0]['text']
-        self.mock_client.transport.perform_request.assert_called_once_with(
-            method='GET',
-            url=f'/_plugins/_search_relevance/query_sets/{query_set_id}',
+        self.mock_client.plugins.search_relevance.get_query_sets.assert_called_once_with(
+            query_set_id=query_set_id
         )
 
     @pytest.mark.asyncio
     async def test_get_query_set_tool_error(self):
         """Test error handling when retrieving a query set fails."""
-        self.mock_client.transport.perform_request.side_effect = Exception('Not found')
+        self.mock_client.plugins.search_relevance.get_query_sets.side_effect = Exception(
+            'Not found'
+        )
 
         result = await self._get_query_set_tool(
             self.GetQuerySetArgs(opensearch_cluster_name='', query_set_id='missing-id')
@@ -92,7 +98,7 @@ class TestQuerySetTools:
     async def test_create_query_set_tool_string_queries(self):
         """Test creating a query set with a list of plain string queries."""
         mock_response = {'_id': 'new-id', 'result': 'created'}
-        self.mock_client.transport.perform_request.return_value = mock_response
+        self.mock_client.plugins.search_relevance.put_query_sets.return_value = mock_response
 
         result = await self._create_query_set_tool(
             self.CreateQuerySetArgs(
@@ -108,9 +114,7 @@ class TestQuerySetTools:
         assert 'Query set created' in result[0]['text']
         assert 'new-id' in result[0]['text']
 
-        call_kwargs = self.mock_client.transport.perform_request.call_args
-        assert call_kwargs.kwargs['method'] == 'PUT'
-        assert call_kwargs.kwargs['url'] == '/_plugins/_search_relevance/query_sets'
+        call_kwargs = self.mock_client.plugins.search_relevance.put_query_sets.call_args
         body = call_kwargs.kwargs['body']
         assert body['name'] == 'my-set'
         assert body['sampling'] == 'manual'
@@ -123,7 +127,7 @@ class TestQuerySetTools:
     async def test_create_query_set_tool_dict_queries(self):
         """Test creating a query set with queries already in queryText dict format."""
         mock_response = {'_id': 'new-id', 'result': 'created'}
-        self.mock_client.transport.perform_request.return_value = mock_response
+        self.mock_client.plugins.search_relevance.put_query_sets.return_value = mock_response
 
         result = await self._create_query_set_tool(
             self.CreateQuerySetArgs(
@@ -137,7 +141,7 @@ class TestQuerySetTools:
         assert result[0]['type'] == 'text'
         assert 'Query set created' in result[0]['text']
 
-        call_kwargs = self.mock_client.transport.perform_request.call_args
+        call_kwargs = self.mock_client.plugins.search_relevance.put_query_sets.call_args
         body = call_kwargs.kwargs['body']
         assert body['querySetQueries'] == [
             {'queryText': 'laptop'},
@@ -147,7 +151,7 @@ class TestQuerySetTools:
     @pytest.mark.asyncio
     async def test_create_query_set_tool_default_description(self):
         """Test that description defaults to 'Query set: <name>' when not provided."""
-        self.mock_client.transport.perform_request.return_value = {'_id': 'id1'}
+        self.mock_client.plugins.search_relevance.put_query_sets.return_value = {'_id': 'id1'}
 
         await self._create_query_set_tool(
             self.CreateQuerySetArgs(
@@ -157,7 +161,7 @@ class TestQuerySetTools:
             )
         )
 
-        call_kwargs = self.mock_client.transport.perform_request.call_args
+        call_kwargs = self.mock_client.plugins.search_relevance.put_query_sets.call_args
         body = call_kwargs.kwargs['body']
         assert body['description'] == 'Query set: my-set'
 
@@ -180,7 +184,7 @@ class TestQuerySetTools:
     async def test_sample_query_set_tool_success(self):
         """Test successful sampling of a query set from UBI data."""
         mock_response = {'_id': 'sampled-id', 'result': 'created'}
-        self.mock_client.transport.perform_request.return_value = mock_response
+        self.mock_client.plugins.search_relevance.post_query_sets.return_value = mock_response
 
         result = await self._sample_query_set_tool(
             self.SampleQuerySetArgs(
@@ -195,9 +199,7 @@ class TestQuerySetTools:
         assert 'Query set sampled' in result[0]['text']
         assert 'sampled-id' in result[0]['text']
 
-        call_kwargs = self.mock_client.transport.perform_request.call_args
-        assert call_kwargs.kwargs['method'] == 'POST'
-        assert call_kwargs.kwargs['url'] == '/_plugins/_search_relevance/query_sets'
+        call_kwargs = self.mock_client.plugins.search_relevance.post_query_sets.call_args
         body = call_kwargs.kwargs['body']
         assert body['name'] == 'top-queries'
         assert body['sampling'] == 'topn'
@@ -206,7 +208,7 @@ class TestQuerySetTools:
     @pytest.mark.asyncio
     async def test_sample_query_set_tool_default_description(self):
         """Test that description defaults to 'Top N most frequent queries' when not provided."""
-        self.mock_client.transport.perform_request.return_value = {'_id': 'id1'}
+        self.mock_client.plugins.search_relevance.post_query_sets.return_value = {'_id': 'id1'}
 
         await self._sample_query_set_tool(
             self.SampleQuerySetArgs(
@@ -216,14 +218,16 @@ class TestQuerySetTools:
             )
         )
 
-        call_kwargs = self.mock_client.transport.perform_request.call_args
+        call_kwargs = self.mock_client.plugins.search_relevance.post_query_sets.call_args
         body = call_kwargs.kwargs['body']
         assert body['description'] == 'Top 50 most frequent queries'
 
     @pytest.mark.asyncio
     async def test_sample_query_set_tool_error(self):
         """Test error handling when sampling a query set fails."""
-        self.mock_client.transport.perform_request.side_effect = Exception('UBI index not found')
+        self.mock_client.plugins.search_relevance.post_query_sets.side_effect = Exception(
+            'UBI index not found'
+        )
 
         result = await self._sample_query_set_tool(
             self.SampleQuerySetArgs(
@@ -243,7 +247,7 @@ class TestQuerySetTools:
         """Test successful deletion of a query set by ID."""
         query_set_id = 'abc123'
         mock_response = {'_id': query_set_id, 'result': 'deleted'}
-        self.mock_client.transport.perform_request.return_value = mock_response
+        self.mock_client.plugins.search_relevance.delete_query_sets.return_value = mock_response
 
         result = await self._delete_query_set_tool(
             self.DeleteQuerySetArgs(opensearch_cluster_name='', query_set_id=query_set_id)
@@ -253,15 +257,16 @@ class TestQuerySetTools:
         assert result[0]['type'] == 'text'
         assert query_set_id in result[0]['text']
         assert 'deleted' in result[0]['text']
-        self.mock_client.transport.perform_request.assert_called_once_with(
-            method='DELETE',
-            url=f'/_plugins/_search_relevance/query_sets/{query_set_id}',
+        self.mock_client.plugins.search_relevance.delete_query_sets.assert_called_once_with(
+            query_set_id=query_set_id
         )
 
     @pytest.mark.asyncio
     async def test_delete_query_set_tool_error(self):
         """Test error handling when deleting a query set fails."""
-        self.mock_client.transport.perform_request.side_effect = Exception('Query set not found')
+        self.mock_client.plugins.search_relevance.delete_query_sets.side_effect = Exception(
+            'Query set not found'
+        )
 
         result = await self._delete_query_set_tool(
             self.DeleteQuerySetArgs(opensearch_cluster_name='', query_set_id='missing-id')
