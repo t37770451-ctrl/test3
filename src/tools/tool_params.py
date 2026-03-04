@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 from pydantic import BaseModel, Field
-from typing import Any, Optional, Type, TypeVar, Dict
+from typing import Any, Literal, Optional, Type, TypeVar, Dict
 from mcp_server_opensearch.global_state import get_mode
 
 T = TypeVar('T', bound=BaseModel)
@@ -338,6 +338,15 @@ class SampleQuerySetArgs(baseToolArgs):
     query_set_size: int = Field(
         default=20, description='Number of top queries to sample (default: 20)', ge=1
     )
+    sampling: Literal['topn', 'random', 'pptss', 'all'] = Field(
+        default='topn',
+        description=(
+            'Sampling method: "topn" (most frequent N queries), '
+            '"random" (random sample), '
+            '"pptss" (probability-proportional-to-size sampling), '
+            '"all" (all queries)'
+        ),
+    )
     description: str = Field(default='', description='Optional description of the query set')
 
     class Config:
@@ -348,6 +357,12 @@ class SampleQuerySetArgs(baseToolArgs):
                     'name': 'top-50-queries',
                     'query_set_size': 50,
                     'description': 'Top 50 most frequent user queries',
+                },
+                {
+                    'name': 'random-queries',
+                    'query_set_size': 30,
+                    'sampling': 'random',
+                    'description': 'Random sample of 30 queries',
                 },
             ]
         }

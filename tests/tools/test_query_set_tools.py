@@ -206,8 +206,34 @@ class TestQuerySetTools:
         assert body['querySetSize'] == 20
 
     @pytest.mark.asyncio
+    async def test_sample_query_set_tool_custom_sampling(self):
+        """Test sampling a query set with a non-default sampling method."""
+        self.mock_client.plugins.search_relevance.post_query_sets.return_value = {
+            '_id': 'random-id',
+            'result': 'created',
+        }
+
+        result = await self._sample_query_set_tool(
+            self.SampleQuerySetArgs(
+                opensearch_cluster_name='',
+                name='random-queries',
+                query_set_size=30,
+                sampling='random',
+            )
+        )
+
+        assert len(result) == 1
+        assert result[0]['type'] == 'text'
+        assert 'Query set sampled' in result[0]['text']
+
+        call_kwargs = self.mock_client.plugins.search_relevance.post_query_sets.call_args
+        body = call_kwargs.kwargs['body']
+        assert body['sampling'] == 'random'
+        assert body['querySetSize'] == 30
+
+    @pytest.mark.asyncio
     async def test_sample_query_set_tool_default_description(self):
-        """Test that description defaults to 'Top N most frequent queries' when not provided."""
+        """Test that description defaults to a generated string when not provided."""
         self.mock_client.plugins.search_relevance.post_query_sets.return_value = {'_id': 'id1'}
 
         await self._sample_query_set_tool(
@@ -220,7 +246,7 @@ class TestQuerySetTools:
 
         call_kwargs = self.mock_client.plugins.search_relevance.post_query_sets.call_args
         body = call_kwargs.kwargs['body']
-        assert body['description'] == 'Top 50 most frequent queries'
+        assert body['description'] == 'Query set: top-queries (topn, size=50)'
 
     @pytest.mark.asyncio
     async def test_sample_query_set_tool_error(self):

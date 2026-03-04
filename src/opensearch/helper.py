@@ -368,8 +368,8 @@ async def sample_query_set(args: SampleQuerySetArgs) -> json:
 
     body = {
         'name': args.name,
-        'description': args.description or f'Top {args.query_set_size} most frequent queries',
-        'sampling': 'topn',
+        'description': args.description or f'Query set: {args.name} ({args.sampling}, size={args.query_set_size})',
+        'sampling': args.sampling,
         'querySetSize': args.query_set_size,
     }
 
