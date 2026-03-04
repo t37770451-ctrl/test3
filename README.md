@@ -71,6 +71,10 @@ Search Relevance Workbench tools are grouped under the `search_relevance` catego
 - [SampleQuerySetTool](https://docs.opensearch.org/latest/search-plugins/search-relevance/query-sets/#creating-query-sets): Samples a query set based on UBI data with different statistical sampling techniques.
 - [GetQuerySetTool](https://docs.opensearch.org/latest/search-plugins/search-relevance/query-sets/#retrieve-query-sets): Retrieves a query set by ID.
 - [DeleteQuerySetTool](https://docs.opensearch.org/latest/search-plugins/search-relevance/query-sets/#delete-a-query-set): Deletes a query set by ID.
+- [CreateJudgmentListTool](https://docs.opensearch.org/latest/search-plugins/search-relevance/judgments/#importing-judgments): Creates a judgment list with judgments originating from an external process.
+- [CreateUBIJudgmentListTool](https://docs.opensearch.org/latest/search-plugins/search-relevance/judgments/#implicit-judgments): Creates a judgment list based on implicit feedback (User Behavior Insights data).
+- [GetJudgmentListTool](https://docs.opensearch.org/latest/search-plugins/search-relevance/judgments/): Retrieves a judgment list by ID.
+- [DeleteJudgmentListTool](https://docs.opensearch.org/latest/search-plugins/search-relevance/judgments/): Deletes a judgment list by ID.
 
 ### Skills Tools (Enabled by Default)
 
