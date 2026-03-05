@@ -71,6 +71,9 @@ Search Relevance Workbench tools are grouped under the `search_relevance` catego
 - [SampleQuerySetTool](https://docs.opensearch.org/latest/search-plugins/search-relevance/query-sets/#creating-query-sets): Samples a query set based on UBI data with different statistical sampling techniques.
 - [GetQuerySetTool](https://docs.opensearch.org/latest/search-plugins/search-relevance/query-sets/#retrieve-query-sets): Retrieves a query set by ID.
 - [DeleteQuerySetTool](https://docs.opensearch.org/latest/search-plugins/search-relevance/query-sets/#delete-a-query-set): Deletes a query set by ID.
+- [CreateExperimentTool](https://docs.opensearch.org/latest/search-plugins/search-relevance/experiments/): Creates a search relevance experiment. Supports PAIRWISE_COMPARISON (compares 2 search configurations), POINTWISE_EVALUATION (evaluates 1 configuration against judgment lists), and HYBRID_OPTIMIZER (optimizes 1 configuration using judgment lists).
+- [GetExperimentTool](https://docs.opensearch.org/latest/search-plugins/search-relevance/experiments/): Retrieves an experiment by ID.
+- [DeleteExperimentTool](https://docs.opensearch.org/latest/search-plugins/search-relevance/experiments/): Deletes an experiment by ID.
 
 ### Skills Tools (Enabled by Default)
 
