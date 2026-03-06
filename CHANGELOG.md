@@ -4,6 +4,8 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## [Unreleased]
 
+- Added Bearer Authorization support when header authentication is enabled
+
 ## [Released 0.8.0]
 ### Added
 
