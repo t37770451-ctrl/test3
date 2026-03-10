@@ -148,6 +148,36 @@ def _session_id_query(session_id: str) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# Correlation ID collection for second-pass queries
+# ---------------------------------------------------------------------------
+
+
+def _collect_correlation_ids(logs: List[dict]) -> Dict[str, set]:
+    """Extract unique correlation IDs from normalized logs for cross-service matching."""
+    ids: Dict[str, set] = {
+        'connectionIds': set(),
+        'sessionIds': set(),
+        'requestIds': set(),
+        'clientIds': set(),
+        'contextIds': set(),
+    }
+    for log in logs:
+        for field, key in [
+            ('connectionId', 'connectionIds'),
+            ('connectionToken', 'connectionIds'),
+            ('sessionId', 'sessionIds'),
+            ('sessionToken', 'sessionIds'),
+            ('requestId', 'requestIds'),
+            ('clientId', 'clientIds'),
+            ('contextId', 'contextIds'),
+        ]:
+            val = log.get(field, '')
+            if val:
+                ids[key].add(val)
+    return ids
+
+
+# ---------------------------------------------------------------------------
 # Fetcher — parallel queries against OpenSearch
 # ---------------------------------------------------------------------------
 
@@ -166,6 +196,68 @@ async def _query_index(args: LogCorrelationArgs, index: str, body: dict, size: i
         return {'hits': {'total': {'value': 0}, 'hits': []}, '_error': str(exc)}
 
 
+_CORR_FIELD_MAP = {
+    'stream-server': {
+        'connectionId': ['rawLog.data.call.data.connectionId'],
+        'sessionId': ['rawLog.data.call.data.sessionId'],
+        'requestId': ['rawLog.data.requestId'],
+        'contextId': ['rawLog.data.contextId'],
+    },
+    'nlp-server': {
+        'connectionId': ['metadata.connection_id'],
+        'sessionId': ['metadata.session_id'],
+        'requestId': ['metadata.request_id', 'request_id'],
+        'clientId': ['metadata.client_id'],
+    },
+}
+
+
+async def _query_by_correlation_ids(
+    args: LogCorrelationArgs,
+    index: str,
+    time_clause: dict,
+    corr_ids: Dict[str, set],
+    source_tag: str,
+    size: int,
+) -> dict:
+    """Query an index by matching known correlation IDs (second pass)."""
+    field_map = _CORR_FIELD_MAP.get(source_tag, {})
+    should_clauses: List[dict] = []
+
+    id_to_key = [
+        ('connectionIds', 'connectionId'),
+        ('sessionIds', 'sessionId'),
+        ('requestIds', 'requestId'),
+        ('clientIds', 'clientId'),
+        ('contextIds', 'contextId'),
+    ]
+    for id_set_key, field_key in id_to_key:
+        vals = list(corr_ids.get(id_set_key, set()))
+        if not vals:
+            continue
+        fields = field_map.get(field_key, [])
+        for field in fields:
+            if len(vals) == 1:
+                should_clauses.append({'match': {field: vals[0]}})
+            else:
+                should_clauses.append({'terms': {f'{field}.keyword': vals[:50]}})
+
+    if not should_clauses:
+        return {'hits': {'total': {'value': 0}, 'hits': []}}
+
+    body = {
+        'query': {
+            'bool': {
+                'must': [time_clause],
+                'should': should_clauses,
+                'minimum_should_match': 1,
+            }
+        },
+        'sort': [{'@timestamp': {'order': 'desc'}}],
+    }
+    return await _query_index(args, index, body, size)
+
+
 # ---------------------------------------------------------------------------
 # Normalizers — one per index type
 # ---------------------------------------------------------------------------
@@ -174,6 +266,8 @@ async def _query_index(args: LogCorrelationArgs, index: str, body: dict, size: i
 def _norm_bot_engine_default(hit: dict) -> dict:
     s = hit.get('_source', {})
     rl = s.get('rawLog', {})
+    data = rl.get('data', {})
+    metadata = data.get('metadata', {})
     return {
         'timestamp': s.get('@timestamp', ''),
         'source': 'bot-engine.default',
@@ -187,9 +281,11 @@ def _norm_bot_engine_default(hit: dict) -> dict:
         'hostname': s.get('hostname', ''),
         'podName': _safe_get(s, 'kubernetes', 'pod_name', default=''),
         'namespace': _safe_get(s, 'kubernetes', 'namespace_name', default=''),
-        'connectionId': _safe_get(rl, 'data', 'event', 'connection', 'id', default=''),
-        'sessionId': _safe_get(rl, 'data', 'event', 'session', 'id', default=''),
-        'channelCode': _safe_get(rl, 'data', 'event', 'channel', 'channelCode', default=''),
+        'connectionId': metadata.get('connectionId', '') or _safe_get(data, 'event', 'connection', 'id', default=''),
+        'sessionId': metadata.get('sessionId', '') or _safe_get(data, 'event', 'session', 'id', default=''),
+        'channelCode': metadata.get('channelCode', '') or _safe_get(data, 'event', 'channel', 'channelCode', default=''),
+        'requestId': _safe_get(data, 'event', 'request', 'id', default='') or rl.get('requestId', ''),
+        'clientId': rl.get('clientId', '') or metadata.get('clientId', '') or _safe_get(data, 'event', 'client', 'id', default=''),
     }
 
 
@@ -303,6 +399,8 @@ def _norm_analytics(hit: dict) -> dict:
 def _norm_integration_manager(hit: dict) -> dict:
     s = hit.get('_source', {})
     rl = s.get('rawLog', {})
+    data = rl.get('data', {})
+    metadata = _safe_get(data, 'context', 'metadata', default={}) or {}
     msg = s.get('msg', '')
 
     endpoint = ''
@@ -327,9 +425,73 @@ def _norm_integration_manager(hit: dict) -> dict:
         'hostname': s.get('hostname', ''),
         'podName': _safe_get(s, 'kubernetes', 'pod_name', default=''),
         'namespace': _safe_get(s, 'kubernetes', 'namespace_name', default=''),
+        'connectionId': metadata.get('connectionId', ''),
+        'sessionId': metadata.get('sessionId', ''),
+        'requestId': metadata.get('requestId', '') or rl.get('requestId', ''),
+        'clientId': metadata.get('clientId', '') or rl.get('clientId', ''),
+        'channelCode': metadata.get('channelCode', ''),
         'endpoint': endpoint,
         'httpStatus': http_status,
         'durationMs': duration_ms or _safe_get(rl, 'data', 'duration', default=None),
+    }
+
+
+def _norm_stream_server(hit: dict) -> dict:
+    s = hit.get('_source', {})
+    rl = s.get('rawLog', {})
+    data = rl.get('data', {})
+    call_data = _safe_get(data, 'call', 'data', default={}) or {}
+    return {
+        'timestamp': s.get('@timestamp', ''),
+        'source': 'stream-server',
+        'tenantName': s.get('tenantName', '') or call_data.get('tenantName', ''),
+        'agentName': s.get('agentName', '') or call_data.get('agentName', ''),
+        'moduleName': rl.get('moduleName', ''),
+        'level': s.get('level', 30),
+        'levelName': LOG_LEVELS.get(s.get('level', 30), 'UNKNOWN'),
+        'message': s.get('msg', ''),
+        'uuid': s.get('uuid', ''),
+        'hostname': s.get('hostname', ''),
+        'podName': _safe_get(s, 'kubernetes', 'pod_name', default=''),
+        'namespace': _safe_get(s, 'kubernetes', 'namespace_name', default=''),
+        'connectionId': call_data.get('connectionId', ''),
+        'sessionId': call_data.get('sessionId', ''),
+        'requestId': data.get('requestId', ''),
+        'clientId': s.get('clientId', '') or call_data.get('clientId', ''),
+        'callSid': s.get('callSid', '') or _safe_get(data, 'call', 'callSid', default=''),
+        'streamSid': s.get('streamSid', '') or _safe_get(data, 'call', 'streamSid', default=''),
+        'contextId': data.get('contextId', ''),
+    }
+
+
+def _norm_nlp_server(hit: dict) -> dict:
+    s = hit.get('_source', {})
+    metadata = s.get('metadata', {}) or {}
+    usage = _safe_get(s, 'result', 'usage', default={}) or {}
+    return {
+        'timestamp': s.get('@timestamp', ''),
+        'source': 'nlp-server',
+        'tenantName': metadata.get('tenant_name', ''),
+        'agentName': metadata.get('agent_name', ''),
+        'moduleName': '',
+        'level': s.get('level', 30) if isinstance(s.get('level'), int) else 30,
+        'levelName': 'INFO',
+        'message': '',
+        'uuid': '',
+        'hostname': '',
+        'podName': _safe_get(s, 'kubernetes', 'pod_name', default=''),
+        'namespace': _safe_get(s, 'kubernetes', 'namespace_name', default=''),
+        'connectionId': metadata.get('connection_id', ''),
+        'sessionId': metadata.get('session_id', ''),
+        'requestId': metadata.get('request_id', '') or s.get('request_id', ''),
+        'clientId': metadata.get('client_id', ''),
+        'channelCode': metadata.get('channel_code', ''),
+        'inputText': s.get('text', ''),
+        'classifiedAction': s.get('action', ''),
+        'modelId': _safe_get(s, 'result', 'model_id', default=''),
+        'promptTokens': usage.get('prompt_tokens'),
+        'completionTokens': usage.get('completion_tokens'),
+        'totalTokens': usage.get('total_tokens'),
     }
 
 
@@ -359,6 +521,8 @@ def _explode_conversation_trace(hit: dict) -> List[dict]:
         'moduleName': ev_obj.get('module', original.get('moduleName', '')),
         'level': LOG_LEVELS.get(s.get('level', 30), 'INFO'),
         'category': category,
+        'requestId': _safe_get(s, 'request', 'id', default=_safe_get(inner_ev, 'request', 'id', default='')),
+        'clientId': _safe_get(inner_ev, 'client', 'id', default=''),
     }
 
     events: List[dict] = []
@@ -466,6 +630,8 @@ def _trace_from_bot_engine(hit: dict) -> dict:
         'connectionId': metadata.get('connectionId', '') or _safe_get(data, 'event', 'connection', 'id', default=''),
         'connectionToken': _safe_get(data, 'event', 'connection', 'token', default=call_token),
         'channelCode': metadata.get('channelCode', '') or _safe_get(data, 'event', 'channel', 'channelCode', default=''),
+        'requestId': _safe_get(data, 'event', 'request', 'id', default='') or rl.get('requestId', ''),
+        'clientId': rl.get('clientId', '') or metadata.get('clientId', '') or _safe_get(data, 'event', 'client', 'id', default=''),
         'moduleName': rl.get('moduleName', ''),
         'level': LOG_LEVELS.get(level, 'INFO'),
         'eventType': event_type,
@@ -482,6 +648,7 @@ def _trace_from_integration(hit: dict) -> dict:
     s = hit.get('_source', {})
     rl = s.get('rawLog', {})
     data = rl.get('data', {})
+    metadata = _safe_get(data, 'context', 'metadata', default={}) or {}
     msg = s.get('msg', '')
 
     call_token = s.get('callToken', '') or rl.get('callToken', '')
@@ -509,9 +676,11 @@ def _trace_from_integration(hit: dict) -> dict:
         'timestamp': s.get('@timestamp', ''),
         'source': 'integration-manager',
         'callToken': call_token,
-        'sessionId': '',
-        'connectionId': '',
-        'channelCode': '',
+        'sessionId': metadata.get('sessionId', ''),
+        'connectionId': metadata.get('connectionId', ''),
+        'requestId': metadata.get('requestId', '') or rl.get('requestId', ''),
+        'clientId': metadata.get('clientId', '') or rl.get('clientId', ''),
+        'channelCode': metadata.get('channelCode', ''),
         'moduleName': rl.get('moduleName', ''),
         'level': LOG_LEVELS.get(s.get('level', 30), 'INFO'),
         'eventType': 'INTEGRATION',
@@ -525,11 +694,84 @@ def _trace_from_integration(hit: dict) -> dict:
     }
 
 
-def _build_trace_events(results: list) -> List[dict]:
+def _trace_from_stream_server(hit: dict) -> dict:
+    """Convert a stream-server hit into a trace event."""
+    s = hit.get('_source', {})
+    rl = s.get('rawLog', {})
+    data = rl.get('data', {})
+    call_data = _safe_get(data, 'call', 'data', default={}) or {}
+    level = s.get('level', 30)
+    msg = s.get('msg', '')
+
+    error_msg = _safe_get(data, 'error', 'message', default='')
+    display = msg
+    if error_msg:
+        display = f'{msg} — {error_msg}' if msg else error_msg
+
+    return {
+        'timestamp': s.get('@timestamp', ''),
+        'source': 'stream-server',
+        'sessionId': call_data.get('sessionId', ''),
+        'connectionId': call_data.get('connectionId', ''),
+        'connectionToken': '',
+        'channelCode': '',
+        'requestId': data.get('requestId', ''),
+        'clientId': s.get('clientId', '') or call_data.get('clientId', ''),
+        'moduleName': rl.get('moduleName', ''),
+        'level': LOG_LEVELS.get(level, 'INFO'),
+        'eventType': 'ERROR' if level >= 50 else 'STREAM',
+        'text': display,
+        'experienceName': '',
+        'contextId': data.get('contextId', ''),
+        'durationMs': data.get('time'),
+    }
+
+
+def _trace_from_nlp_server(hit: dict) -> dict:
+    """Convert an nlp-server hit into a trace event."""
+    s = hit.get('_source', {})
+    metadata = s.get('metadata', {}) or {}
+    usage = _safe_get(s, 'result', 'usage', default={}) or {}
+    input_text = s.get('text', '')
+    action = s.get('action', '')
+    model_id = _safe_get(s, 'result', 'model_id', default='')
+    total_tokens = usage.get('total_tokens', '')
+
+    if not input_text and not action:
+        return {}
+    display = f'NLP: "{input_text}" → {action}' if input_text else action
+    if model_id:
+        display += f' [{model_id}]'
+    if total_tokens:
+        display += f' ({total_tokens} tokens)'
+
+    return {
+        'timestamp': s.get('@timestamp', ''),
+        'source': 'nlp-server',
+        'sessionId': metadata.get('session_id', ''),
+        'connectionId': metadata.get('connection_id', ''),
+        'connectionToken': '',
+        'channelCode': metadata.get('channel_code', ''),
+        'requestId': metadata.get('request_id', '') or s.get('request_id', ''),
+        'clientId': metadata.get('client_id', ''),
+        'moduleName': '',
+        'level': 'INFO',
+        'eventType': 'NLP',
+        'text': display,
+        'experienceName': '',
+        'inputText': input_text,
+        'classifiedAction': action,
+    }
+
+
+def _build_trace_events(results: list, extra_results: Optional[list] = None) -> List[dict]:
     """Build the flat traceEvents list from raw OpenSearch results.
 
     Uses callToken (= connectionToken) to correlate integration-manager logs
     back to their originating connection/session.
+
+    ``extra_results`` is an optional list of (source_tag, result) tuples from
+    the second-pass queries (stream-server, nlp-server).
     """
     trace: List[dict] = []
 
@@ -586,6 +828,23 @@ def _build_trace_events(results: list) -> List[dict]:
             except Exception as exc:
                 logger.warning('Trace integration error: %s', exc)
 
+    # Second-pass results: stream-server and nlp-server
+    for tag, res in (extra_results or []):
+        if isinstance(res, Exception):
+            continue
+        for hit in res.get('hits', {}).get('hits', []):
+            try:
+                if tag == 'stream-server':
+                    ev = _trace_from_stream_server(hit)
+                elif tag == 'nlp-server':
+                    ev = _trace_from_nlp_server(hit)
+                else:
+                    continue
+                if ev and ev.get('text'):
+                    trace.append(ev)
+            except Exception as exc:
+                logger.warning('Trace %s error: %s', tag, exc)
+
     trace.sort(key=lambda x: x.get('timestamp', ''))
     return trace
 
@@ -600,6 +859,11 @@ _INDEX_META = [
     ('conversation', _norm_conversation_per_tenant),
     ('analytics', _norm_analytics),
     ('integration-manager', _norm_integration_manager),
+]
+
+_EXTRA_INDEX_META = [
+    ('stream-server', _norm_stream_server),
+    ('nlp-server', _norm_nlp_server),
 ]
 
 
@@ -672,6 +936,20 @@ def _build_report(
             entry['type'] = log.get('eventType', 'analytics')
             entry['detail'] = log.get('eventSubtype', '') or log.get('message', '')
             entry['channel'] = log.get('channelCode', '')
+        elif src == 'stream-server':
+            entry['type'] = 'stream'
+            entry['detail'] = log.get('message', '')
+            if log.get('contextId'):
+                entry['contextId'] = log['contextId']
+            if log.get('durationMs') or log.get('callSid'):
+                entry['callSid'] = log.get('callSid', '')
+        elif src == 'nlp-server':
+            entry['type'] = 'nlp'
+            entry['detail'] = f'"{log.get("inputText", "")}" → {log.get("classifiedAction", "")}'
+            if log.get('modelId'):
+                entry['model'] = log['modelId']
+            if log.get('totalTokens'):
+                entry['tokens'] = log['totalTokens']
         else:
             entry['type'] = 'system'
             entry['detail'] = log.get('message', '')
@@ -779,7 +1057,7 @@ async def log_correlation_tool(args: LogCorrelationArgs) -> list[dict]:
         conv_idx = f'conversation-{slug}-{agent_name}-*' if agent_name else f'conversation-{slug}-*'
         anl_idx = f'analytics-{slug}-{agent_name}-*' if agent_name else f'analytics-{slug}-*'
 
-        # ---- Parallel fetch across all index types ----
+        # ---- Pass 1: Parallel fetch across core index types ----
         results = await asyncio.gather(
             _query_index(args, 'bot-engine.default-*', tq, max_results),
             _query_index(args, 'bot-engine.conversation-*', tq, max_results),
@@ -789,7 +1067,7 @@ async def log_correlation_tool(args: LogCorrelationArgs) -> list[dict]:
             return_exceptions=True,
         )
 
-        # ---- Normalize + merge ----
+        # ---- Normalize + merge (core indices) ----
         all_logs: List[dict] = []
         raw_counts: Dict[str, Any] = {}
 
@@ -807,7 +1085,39 @@ async def log_correlation_tool(args: LogCorrelationArgs) -> list[dict]:
                 except Exception as exc:
                     logger.warning('Normalizer error for %s: %s', name, exc)
 
-        trace_events = _build_trace_events(results)
+        # ---- Pass 2: Correlate stream-server + nlp-server via IDs ----
+        corr_ids = _collect_correlation_ids(all_logs)
+        extra_results: List[Tuple[str, Any]] = []
+        if corr_ids['connectionIds'] or corr_ids['requestIds'] or corr_ids['sessionIds']:
+            pass2_time_query = _time_range_clause(time_gte, time_lte)
+            extra_raw = await asyncio.gather(
+                _query_by_correlation_ids(
+                    args, 'default.stream-server.*', pass2_time_query,
+                    corr_ids, 'stream-server', max_results,
+                ),
+                _query_by_correlation_ids(
+                    args, 'default.nlp-server.*', pass2_time_query,
+                    corr_ids, 'nlp-server', max_results,
+                ),
+                return_exceptions=True,
+            )
+            for j, tag in enumerate(['stream-server', 'nlp-server']):
+                res = extra_raw[j]
+                if isinstance(res, Exception):
+                    raw_counts[tag] = f'error: {res}'
+                    continue
+                hits_obj = res.get('hits', {})
+                total = hits_obj.get('total', {}).get('value', 0)
+                raw_counts[tag] = total
+                normalizer = _EXTRA_INDEX_META[j][1]
+                for hit in hits_obj.get('hits', []):
+                    try:
+                        all_logs.append(normalizer(hit))
+                    except Exception as exc:
+                        logger.warning('Normalizer error for %s: %s', tag, exc)
+                extra_results.append((tag, res))
+
+        trace_events = _build_trace_events(results, extra_results or None)
         report = _build_report(
             all_logs, tenant_name, agent_name, time_gte, time_lte, raw_counts, trace_events,
         )

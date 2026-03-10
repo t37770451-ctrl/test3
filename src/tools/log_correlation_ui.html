@@ -152,6 +152,8 @@
   .trace-tree .leaf .badge.INTEGRATION { background: rgba(94,192,138,0.15); color: var(--success); }
   .trace-tree .leaf .badge.SYSTEM { background: rgba(139,143,167,0.1); color: var(--text2); }
   .trace-tree .leaf .badge.EVENT { background: rgba(108,126,225,0.15); color: var(--accent); }
+  .trace-tree .leaf .badge.NLP { background: rgba(200,130,240,0.15); color: #c882f0; }
+  .trace-tree .leaf .badge.STREAM { background: rgba(240,180,76,0.15); color: var(--warn); }
   .trace-tree .leaf .leaf-text { word-break: break-word; }
   .trace-tree .node-meta { font-size: 12px; color: var(--text2); font-weight: 400; margin-left: 4px; }
   .trace-tree .node-count {
@@ -451,7 +453,7 @@ function renderTrace() {
   for (const ev of events) {
     const sid = ev.sessionId || ev.sessionToken || 'unknown-session';
     const cid = ev.connectionId || ev.connectionToken || 'unknown-connection';
-    const exp = ev.experienceName || ev.moduleName || 'general';
+    const exp = ev.experienceName || ev.moduleName || (ev.source === 'nlp-server' ? 'nlp' : (ev.source === 'stream-server' ? 'stream' : 'general'));
     if (!sessions.has(sid)) sessions.set(sid, { channel: '', connections: new Map(), minTs: ev.timestamp, maxTs: ev.timestamp });
     const sess = sessions.get(sid);
     if (ev.channelCode) sess.channel = ev.channelCode;
@@ -465,7 +467,7 @@ function renderTrace() {
       conn.hasError = true;
       if (ev.text) conn.errors.push(ev.text);
     }
-    if (ev.eventType === 'INPUT' && !conn.firstInput && ev.text) conn.firstInput = ev.text;
+    if ((ev.eventType === 'INPUT' || ev.eventType === 'NLP') && !conn.firstInput && ev.text) conn.firstInput = ev.text;
     if (ev.eventType === 'OUTPUT' && !conn.firstOutput && ev.text) conn.firstOutput = ev.text;
     if (!conn.experiences.has(exp)) conn.experiences.set(exp, []);
     conn.experiences.get(exp).push(ev);
@@ -560,10 +562,15 @@ function renderTrace() {
             if (leaf.httpStatus != null) meta += ` ${leaf.httpStatus}`;
             if (leaf.durationMs != null) meta += ` ${leaf.durationMs}ms`;
           }
+          if (t === 'STREAM' && leaf.durationMs != null) meta += ` ${leaf.durationMs}ms`;
+          const srcLabel = leaf.source ? `[${leaf.source}]` : '';
+          const reqId = leaf.requestId ? `req:${leaf.requestId.substring(0,8)}` : '';
           html += `<div class="leaf">`;
           html += `<span class="ts">${esc(fmtTimeShort(leaf.timestamp))}</span>`;
           html += `<span class="badge ${t}">${t}</span>`;
           html += `<span class="leaf-text">${esc(text)}</span>`;
+          if (srcLabel) html += `<span class="leaf-meta">${esc(srcLabel)}</span>`;
+          if (reqId) html += `<span class="leaf-meta">${esc(reqId)}</span>`;
           if (meta) html += `<span class="leaf-meta">${esc(meta.trim())}</span>`;
           html += `</div>`;
         }
