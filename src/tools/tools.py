@@ -1084,8 +1084,7 @@ TOOL_REGISTRY = {
     'SearchQuerySetsTool': {
         'display_name': 'SearchQuerySetsTool',
         'description': (
-            'Searches query sets in the OpenSearch Search Relevance plugin using OpenSearch query DSL '
-            'via POST /_plugins/_search_relevance/query_sets/_search. '
+            'Searches query sets in the OpenSearch Search Relevance plugin using OpenSearch query DSL.'
             'Accepts a full query DSL body to filter, sort, and paginate results. '
             'Returns all query sets when called without a query body.'
         ),
@@ -1098,8 +1097,7 @@ TOOL_REGISTRY = {
     'SearchSearchConfigurationsTool': {
         'display_name': 'SearchSearchConfigurationsTool',
         'description': (
-            'Searches search configurations in the OpenSearch Search Relevance plugin using OpenSearch query DSL '
-            'via POST /_plugins/_search_relevance/search_configuration/_search. '
+            'Searches search configurations in the OpenSearch Search Relevance plugin using OpenSearch query DSL.'
             'Accepts a full query DSL body to filter, sort, and paginate results. '
             'Returns all search configurations when called without a query body.'
         ),
@@ -1112,8 +1110,7 @@ TOOL_REGISTRY = {
     'SearchJudgmentsTool': {
         'display_name': 'SearchJudgmentsTool',
         'description': (
-            'Searches judgments in the OpenSearch Search Relevance plugin using OpenSearch query DSL '
-            'via POST /_plugins/_search_relevance/judgment/_search. '
+            'Searches judgments in the OpenSearch Search Relevance plugin using OpenSearch query DSL.'
             'Accepts a full query DSL body to filter, sort, and paginate results. '
             'Returns all judgments when called without a query body.'
         ),
@@ -1126,8 +1123,7 @@ TOOL_REGISTRY = {
     'SearchExperimentsTool': {
         'display_name': 'SearchExperimentsTool',
         'description': (
-            'Searches experiments in the OpenSearch Search Relevance plugin using OpenSearch query DSL '
-            'via POST /_plugins/_search_relevance/experiment/_search. '
+            'Searches experiments in the OpenSearch Search Relevance plugin using OpenSearch query DSL.'
             'Accepts a full query DSL body to filter, sort, and paginate results. '
             'Returns all experiments when called without a query body.'
         ),

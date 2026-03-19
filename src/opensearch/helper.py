@@ -427,7 +427,13 @@ async def _srw_search(args, entity: str) -> json:
     """
     from .client import get_opensearch_client
 
-    body = args.query_body if args.query_body is not None else {'query': {'match_all': {}}}
+    if args.query_body is None:
+        body = {'query': {'match_all': {}}}
+    elif isinstance(args.query_body, str):
+        validate_json_string(args.query_body)
+        body = json.loads(args.query_body)
+    else:
+        body = args.query_body
     async with get_opensearch_client(args) as client:
         response = await client.transport.perform_request(
             method='POST',
