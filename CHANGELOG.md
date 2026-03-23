@@ -5,6 +5,13 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ## [Unreleased]
 ### Added
 
+### Fixed
+
+### Removed
+
+## [Released 0.9.0]
+### Added
+
 - Add Search Relevance Workbench tools for query set management (add, get, delete) ([#187](https://github.com/opensearch-project/opensearch-mcp-server-py/pull/187))
 - Add Search Relevance Workbench tools for judgment list management (create, get, delete) ([#190](https://github.com/opensearch-project/opensearch-mcp-server-py/pull/190))
 - Add Search Relevance Workbench tools for experiment management (create, get, delete) ([#192](https://github.com/opensearch-project/opensearch-mcp-server-py/pull/192))
@@ -13,8 +20,8 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Improved
 
 - Enhanced SearchIndexTool descriptions to improve LLM query construction consistency ([#194](https://github.com/opensearch-project/opensearch-mcp-server-py/pull/194))
-- Added Bearer Authorization support when header authentication is enabled
-- Sanitized write-disabled error message in GenericOpenSearchApiTool to avoid exposing internal configuration details
+- Added Bearer Authorization support when header authentication is enabled ([#189](https://github.com/opensearch-project/opensearch-mcp-server-py/pull/189))
+- Sanitized write-disabled error message in GenericOpenSearchApiTool to avoid exposing internal configuration details ([#196](https://github.com/opensearch-project/opensearch-mcp-server-py/pull/196))
 
 ## [Released 0.8.0]
 ### Added
