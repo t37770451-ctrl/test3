@@ -502,6 +502,74 @@ async def get_long_running_tasks_tool(args: GetLongRunningTasksArgs) -> list[dic
 from .generic_api_tool import GenericOpenSearchApiArgs, generic_opensearch_api_tool
 
 
+# Agentic memory tools registry (conditionally registered based on configuration)
+AGENTIC_MEMORY_TOOLS = {
+    'CreateAgenticMemorySessionTool': {
+        'display_name': 'CreateAgenticMemorySessionTool',
+        'description': 'Create a new session in a memory container.',
+        'input_schema': CreateAgenticMemorySessionArgs.model_json_schema(),
+        'function': create_agentic_memory_session_tool,
+        'args_model': CreateAgenticMemorySessionArgs,
+        'min_version': '3.3.0',  # Agentic memory APIs requires OpenSearch 3.3+
+        'http_methods': 'POST',
+    },
+    'AddAgenticMemoriesTool': {
+        'display_name': 'AddAgenticMemoriesTool',
+        'description': 'Add an agentic memory to a memory container.',
+        'input_schema': AddAgenticMemoriesArgs.model_json_schema(),
+        'function': add_agentic_memories_tool,
+        'args_model': AddAgenticMemoriesArgs,
+        'min_version': '3.3.0',  # Agentic memory APIs requires OpenSearch 3.3+
+        'http_methods': 'POST',
+    },
+    'GetAgenticMemoryTool': {
+        'display_name': 'GetAgenticMemoryTool',
+        'description': 'Retrieve a specific memory by its type and ID.',
+        'input_schema': GetAgenticMemoryArgs.model_json_schema(),
+        'function': get_agentic_memory_tool,
+        'args_model': GetAgenticMemoryArgs,
+        'min_version': '3.3.0',  # Agentic memory APIs requires OpenSearch 3.3+
+        'http_methods': 'GET',
+    },
+    'UpdateAgenticMemoryTool': {
+        'display_name': 'UpdateAgenticMemoryTool',
+        'description': 'Update a specific memory by its type and ID.',
+        'input_schema': UpdateAgenticMemoryArgs.model_json_schema(),
+        'function': update_agentic_memory_tool,
+        'args_model': UpdateAgenticMemoryArgs,
+        'min_version': '3.3.0',  # Agentic memory APIs requires OpenSearch 3.3+
+        'http_methods': 'PUT',
+    },
+    'DeleteAgenticMemoryByIDTool': {
+        'display_name': 'DeleteAgenticMemoryByIDTool',
+        'description': 'Deletes specific agentic memory container by its type and ID.',
+        'input_schema': DeleteAgenticMemoryByIDArgs.model_json_schema(),
+        'function': delete_agentic_memory_by_id_tool,
+        'args_model': DeleteAgenticMemoryByIDArgs,
+        'min_version': '3.3.0',  # Agentic memory APIs requires OpenSearch 3.3+
+        'http_methods': 'DELETE',
+    },
+    'DeleteAgenticMemoryByQueryTool': {
+        'display_name': 'DeleteAgenticMemoryByQueryTool',
+        'description': 'Deletes specific agentic memory by query.',
+        'input_schema': DeleteAgenticMemoryByQueryArgs.model_json_schema(),
+        'function': delete_agentic_memory_by_query_tool,
+        'args_model': DeleteAgenticMemoryByQueryArgs,
+        'min_version': '3.3.0',  # Agentic memory APIs requires OpenSearch 3.3+
+        'http_methods': 'POST',
+    },
+    'SearchAgenticMemoryTool': {
+        'display_name': 'SearchAgenticMemoryTool',
+        'description': 'Search for memories of a specific type within a memory container.',
+        'input_schema': SearchAgenticMemoryArgs.model_json_schema(),
+        'function': search_agentic_memory_tool,
+        'args_model': SearchAgenticMemoryArgs,
+        'min_version': '3.3.0',  # Agentic memory APIs requires OpenSearch 3.3+
+        'http_methods': 'GET',
+    },
+}
+
+
 # Registry of available OpenSearch tools with their metadata
 TOOL_REGISTRY = {
     **SKILLS_TOOLS_REGISTRY,
@@ -637,76 +705,22 @@ TOOL_REGISTRY = {
         'min_version': '1.0.0',
         'http_methods': 'GET, POST, PUT, DELETE, HEAD, PATCH',
     },
-    'CreateAgenticMemoryContainerTool': {
-        'display_name': 'CreateAgenticMemoryContainerTool',
-        'description': 'Create a memory container to store agentic memories.',
-        'input_schema': CreateAgenticMemoryContainerArgs.model_json_schema(),
-        'function': create_agentic_memory_container_tool,
-        'args_model': CreateAgenticMemoryContainerArgs,
-        'min_version': '3.3.0',  # Agentic memory APIs requires OpenSearch 3.3+
-        'http_methods': 'POST',
-    },
-    'CreateAgenticMemorySessionTool': {
-        'display_name': 'CreateAgenticMemorySessionTool',
-        'description': 'Create a new session in a memory container.',
-        'input_schema': CreateAgenticMemorySessionArgs.model_json_schema(),
-        'function': create_agentic_memory_session_tool,
-        'args_model': CreateAgenticMemorySessionArgs,
-        'min_version': '3.3.0',  # Agentic memory APIs requires OpenSearch 3.3+
-        'http_methods': 'POST',
-    },
-    'AddAgenticMemoriesTool': {
-        'display_name': 'AddAgenticMemoriesTool',
-        'description': 'Add an agentic memory to a memory container.',
-        'input_schema': AddAgenticMemoriesArgs.model_json_schema(),
-        'function': add_agentic_memories_tool,
-        'args_model': AddAgenticMemoriesArgs,
-        'min_version': '3.3.0',  # Agentic memory APIs requires OpenSearch 3.3+
-        'http_methods': 'POST',
-    },
-    'GetAgenticMemoryTool': {
-        'display_name': 'GetAgenticMemoryTool',
-        'description': 'Retrieve a specific memory by its type and ID.',
-        'input_schema': GetAgenticMemoryArgs.model_json_schema(),
-        'function': get_agentic_memory_tool,
-        'args_model': GetAgenticMemoryArgs,
-        'min_version': '3.3.0',  # Agentic memory APIs requires OpenSearch 3.3+
-        'http_methods': 'GET',
-    },
-    'UpdateAgenticMemoryTool': {
-        'display_name': 'UpdateAgenticMemoryTool',
-        'description': 'Update a specific memory by its type and ID.',
-        'input_schema': UpdateAgenticMemoryArgs.model_json_schema(),
-        'function': update_agentic_memory_tool,
-        'args_model': UpdateAgenticMemoryArgs,
-        'min_version': '3.3.0',  # Agentic memory APIs requires OpenSearch 3.3+
-        'http_methods': 'PUT',
-    },
-    'DeleteAgenticMemoryByIDTool': {
-        'display_name': 'DeleteAgenticMemoryByIDTool',
-        'description': 'Deletes specific agentic memory container by its type and ID.',
-        'input_schema': DeleteAgenticMemoryByIDArgs.model_json_schema(),
-        'function': delete_agentic_memory_by_id_tool,
-        'args_model': DeleteAgenticMemoryByIDArgs,
-        'min_version': '3.3.0',  # Agentic memory APIs requires OpenSearch 3.3+
-        'http_methods': 'DELETE',
-    },
-    'DeleteAgenticMemoryByQueryTool': {
-        'display_name': 'DeleteAgenticMemoryByQueryTool',
-        'description': 'Deletes specific agentic memory by query.',
-        'input_schema': DeleteAgenticMemoryByQueryArgs.model_json_schema(),
-        'function': delete_agentic_memory_by_query_tool,
-        'args_model': DeleteAgenticMemoryByQueryArgs,
-        'min_version': '3.3.0',  # Agentic memory APIs requires OpenSearch 3.3+
-        'http_methods': 'POST',
-    },
-    'SearchAgenticMemoryTool': {
-        'display_name': 'SearchAgenticMemoryTool',
-        'description': 'Search for memories of a specific type within a memory container.',
-        'input_schema': SearchAgenticMemoryArgs.model_json_schema(),
-        'function': search_agentic_memory_tool,
-        'args_model': SearchAgenticMemoryArgs,
-        'min_version': '3.3.0',  # Agentic memory APIs requires OpenSearch 3.3+
-        'http_methods': 'GET',
-    },
 }
+
+
+def register_agentic_memory_tools(config_file_path: str = '') -> None:
+    """Register agentic memory tools if memory_container_id is configured.
+
+    This function adds agentic memory tools to the TOOL_REGISTRY only if
+    memory_container_id is set via config file or environment variable.
+    If configured, it also sets the default value for memory_container_id
+    in all agentic memory tools.
+
+    :param config_file_path: Path to the YAML configuration file
+    """
+    from tools.config import should_enable_agentic_memory_tools, get_memory_container_id_from_config
+
+    if not should_enable_agentic_memory_tools(config_file_path):
+        return
+
+    TOOL_REGISTRY.update(AGENTIC_MEMORY_TOOLS)

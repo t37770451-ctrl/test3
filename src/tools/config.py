@@ -13,6 +13,7 @@ DISPLAY_NAME_STRING = 'display_name'
 DESCRIPTION_STRING = 'description'
 ARGS_STRING = 'args'
 MAX_SIZE_LIMIT = 'max_size_limit'
+DEFAULT_STRING = 'default'
 
 # Regex pattern for tool display name validation
 DISPLAY_NAME_PATTERN = r'^[a-zA-Z0-9_-]+$'
@@ -28,19 +29,34 @@ def is_valid_display_name_pattern(name: str) -> bool:
     return re.match(DISPLAY_NAME_PATTERN, name) is not None
 
 
-def _parse_args_map(tool_name: str, raw_args: Any) -> dict[str, dict[str, str]]:
+def _parse_args_map(tool_name: str, raw_args: Any) -> dict[str, dict[str, Any]]:
     if not isinstance(raw_args, dict):
         logging.warning(
-            f"Invalid 'args' for tool '{tool_name}'. Must be a mapping of arg -> string."
+            f"Invalid 'args' for tool '{tool_name}'. Must be a mapping of arg -> string or dict."
         )
         return {}
-    parsed: dict[str, dict[str, str]] = {}
+    parsed: dict[str, dict[str, Any]] = {}
     for arg_name, value in raw_args.items():
         if isinstance(value, str):
             parsed[arg_name] = {DESCRIPTION_STRING: value}
+        elif isinstance(value, dict):
+            arg_config = {}
+            if DESCRIPTION_STRING in value:
+                if not isinstance(value[DESCRIPTION_STRING], str):
+                    raise ValueError(
+                        f"Description for argument '{arg_name}' in tool '{tool_name}' must be a string."
+                    )
+                arg_config[DESCRIPTION_STRING] = value[DESCRIPTION_STRING]
+            if DEFAULT_STRING in value:
+                arg_config[DEFAULT_STRING] = value[DEFAULT_STRING]
+            if not arg_config:
+                raise ValueError(
+                    f"Configuration for argument '{arg_name}' in tool '{tool_name}' must contain 'description' or 'default'."
+                )
+            parsed[arg_name] = arg_config
         else:
             raise ValueError(
-                f"Description for argument '{arg_name}' in tool '{tool_name}' must be a string."
+                f"Configuration for argument '{arg_name}' in tool '{tool_name}' must be a string or a dict."
             )
     return parsed
 
@@ -218,19 +234,35 @@ def _apply_validated_configs(
                 args_model = tool_info.get('args_model')
 
                 for arg_name, overrides in field_value.items():
-                    if DESCRIPTION_STRING in overrides and arg_name in properties:
-                        properties[arg_name]['description'] = overrides[DESCRIPTION_STRING]
-                        try:
-                            if (
-                                args_model
-                                and hasattr(args_model, 'model_fields')
-                                and arg_name in args_model.model_fields
-                            ):
-                                args_model.model_fields[arg_name].description = overrides[
-                                    DESCRIPTION_STRING
-                                ]
-                        except Exception:
-                            pass
+                    if arg_name in properties:
+                        if DESCRIPTION_STRING in overrides:
+                            properties[arg_name]['description'] = overrides[DESCRIPTION_STRING]
+                            try:
+                                if (
+                                    args_model
+                                    and hasattr(args_model, 'model_fields')
+                                    and arg_name in args_model.model_fields
+                                ):
+                                    args_model.model_fields[arg_name].description = overrides[
+                                        DESCRIPTION_STRING
+                                    ]
+                            except Exception:
+                                pass
+                        if DEFAULT_STRING in overrides:
+                            properties[arg_name]['default'] = overrides[DEFAULT_STRING]
+                            if 'required' in input_schema and arg_name in input_schema['required']:
+                                input_schema['required'].remove(arg_name)
+                            try:
+                                if (
+                                    args_model
+                                    and hasattr(args_model, 'model_fields')
+                                    and arg_name in args_model.model_fields
+                                ):
+                                    args_model.model_fields[arg_name].default = overrides[
+                                        DEFAULT_STRING
+                                    ]
+                            except Exception:
+                                pass
                 tool_info['input_schema'] = input_schema
             else:
                 tool_info[field_name] = field_value
@@ -248,12 +280,45 @@ def apply_custom_tool_config(
     1. Config file settings (if config file is provided, CLI is completely ignored)
     2. CLI argument settings (only used if no config file is provided)
 
+    Additionally, if memory_container_id is configured (via config file or environment variable),
+    it will be automatically set as a default value for all agentic memory tools.
+
     :param tool_registry: The original tool registry
     :param config_file_path: Path to the YAML configuration file
     :param cli_tool_overrides: Dictionary of tool overrides from command line
     :return: A new tool registry with custom configurations applied
     """
     custom_registry = copy.deepcopy(tool_registry)
+
+    container_id = get_memory_container_id_from_config(config_file_path)
+    agentic_memory_tool_names = [
+        'CreateAgenticMemorySessionTool',
+        'AddAgenticMemoriesTool',
+        'GetAgenticMemoryTool',
+        'UpdateAgenticMemoryTool',
+        'DeleteAgenticMemoryByIDTool',
+        'DeleteAgenticMemoryByQueryTool',
+        'SearchAgenticMemoryTool',
+    ]
+
+    memory_config = {}
+    if container_id:
+        for tool_name in agentic_memory_tool_names:
+            if tool_name in custom_registry:
+                memory_config[tool_name] = {
+                    ARGS_STRING: {
+                        'memory_container_id': {
+                            DEFAULT_STRING: container_id
+                        }
+                    }
+                }
+
+    # Apply memory_config
+    if memory_config:
+        memory_configs_parsed = _load_config_from_file(memory_config)
+        if memory_configs_parsed:
+            _validate_config(memory_configs_parsed, custom_registry)
+            _apply_validated_configs(custom_registry, memory_configs_parsed)
 
     # Load configuration from file
     config_from_file = {}
@@ -284,3 +349,50 @@ def apply_custom_tool_config(
     default_tool_registry.update(custom_registry)
 
     return custom_registry
+
+
+def get_memory_container_id_from_config(config_file_path: str = '') -> str:
+    """Get memory container ID from config file or environment variable.
+
+    Priority order:
+    1. Config file (if provided and contains agentic_memory.memory_container_id)
+    2. Environment variable OPENSEARCH_MEMORY_CONTAINER_ID
+
+    :param config_file_path: Path to the YAML configuration file
+    :return: Memory container ID or empty string if not found
+    """
+    container_id = ''
+
+    if config_file_path:
+        try:
+            with open(config_file_path, 'r') as f:
+                config = yaml.safe_load(f)
+                if config:
+                    agentic_memory_config = config.get('agentic_memory', {})
+                    if isinstance(agentic_memory_config, dict):
+                        container_id = agentic_memory_config.get('memory_container_id', '')
+                        if container_id:
+                            logging.info(f'Using memory_container_id from config file: {container_id}')
+                            return container_id
+        except Exception as e:
+            logging.debug(f'Could not load memory_container_id from config file {config_file_path}: {e}')
+
+    import os
+    container_id = os.getenv('OPENSEARCH_MEMORY_CONTAINER_ID', '')
+    if container_id:
+        logging.info(f'Using memory_container_id from environment variable: {container_id}')
+
+    return container_id
+
+
+def should_enable_agentic_memory_tools(config_file_path: str = '') -> bool:
+    """Check if agentic memory tools should be enabled.
+
+    Memory tools are enabled only if memory_container_id is configured either
+    in the config file or as an environment variable.
+
+    :param config_file_path: Path to the YAML configuration file
+    :return: True if agentic memory tools should be enabled, False otherwise
+    """
+    container_id = get_memory_container_id_from_config(config_file_path)
+    return bool(container_id)

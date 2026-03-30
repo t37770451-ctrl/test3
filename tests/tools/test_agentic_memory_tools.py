@@ -54,10 +54,13 @@ class TestAgenticMemoryTools:
             if module in sys.modules:
                 del sys.modules[module]
 
+        # Set environment variable for agentic memory tools registration
+        import os
+        os.environ['OPENSEARCH_MEMORY_CONTAINER_ID'] = 'test-container-id'
+
         # Import after patching to ensure fresh imports
         from tools.agentic_memory.actions import (
             add_agentic_memories_tool,
-            create_agentic_memory_container_tool,
             create_agentic_memory_session_tool,
             delete_agentic_memory_by_query_tool,
             delete_agentic_memory_by_id_tool,
@@ -67,7 +70,6 @@ class TestAgenticMemoryTools:
         )
         from tools.agentic_memory.params import (
             AddAgenticMemoriesArgs,
-            CreateAgenticMemoryContainerArgs,
             CreateAgenticMemorySessionArgs,
             DeleteAgenticMemoryByIDArgs,
             DeleteAgenticMemoryByQueryArgs,
@@ -77,9 +79,12 @@ class TestAgenticMemoryTools:
         )
         from tools.tools import (
             TOOL_REGISTRY,
+            register_agentic_memory_tools,
         )
 
-        self.CreateAgenticMemoryContainerArgs = CreateAgenticMemoryContainerArgs
+        # Register agentic memory tools for tests
+        register_agentic_memory_tools()
+
         self.CreateAgenticMemorySessionArgs = CreateAgenticMemorySessionArgs
         self.AddAgenticMemoriesArgs = AddAgenticMemoriesArgs
         self.GetAgenticMemoryArgs = GetAgenticMemoryArgs
@@ -88,7 +93,6 @@ class TestAgenticMemoryTools:
         self.DeleteAgenticMemoryByQueryArgs = DeleteAgenticMemoryByQueryArgs
         self.SearchAgenticMemoryArgs = SearchAgenticMemoryArgs
         self.TOOL_REGISTRY = TOOL_REGISTRY
-        self._create_agentic_memory_container_tool = create_agentic_memory_container_tool
         self._create_agentic_memory_session_tool = create_agentic_memory_session_tool
         self._add_agentic_memories_tool = add_agentic_memories_tool
         self._get_agentic_memory_tool = get_agentic_memory_tool
@@ -100,6 +104,11 @@ class TestAgenticMemoryTools:
     def teardown_method(self):
         """Cleanup after each test method."""
         self.init_client_patcher.stop()
+
+        # Clean up environment variable
+        import os
+        if 'OPENSEARCH_MEMORY_CONTAINER_ID' in os.environ:
+            del os.environ['OPENSEARCH_MEMORY_CONTAINER_ID']
 
     @pytest.fixture
     def memory_container_id(self):
