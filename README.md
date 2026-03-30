@@ -60,7 +60,6 @@ The following tools are available but disabled by default. To enable them, see t
 - [GetNodesHotThreadsTool](https://docs.opensearch.org/latest/api-reference/nodes-apis/nodes-hot-threads/): Gets information about hot threads in the cluster nodes from the /\_nodes/hot_threads endpoint.
 - [GetAllocationTool](https://docs.opensearch.org/latest/api-reference/cat/cat-allocation/): Gets information about shard allocation across nodes in the cluster from the /\_cat/allocation endpoint.
 - [GetLongRunningTasksTool](https://docs.opensearch.org/latest/api-reference/cat/cat-tasks/): Gets information about long-running tasks in the cluster, sorted by running time in descending order.
-- [CreateAgenticMemoryContainerTool](https://docs.opensearch.org/latest/ml-commons-plugin/api/agentic-memory-apis/create-memory-container/): Creates a memory container configuration for storing agentic memories.
 - [CreateAgenticMemorySessionTool](https://docs.opensearch.org/latest/ml-commons-plugin/api/agentic-memory-apis/create-session/): Creates a new session within a memory container.
 - [AddAgenticMemoriesTool](https://docs.opensearch.org/latest/ml-commons-plugin/api/agentic-memory-apis/add-memory/): Adds conversational or structured data memories to a container.
 - [GetAgenticMemoryTool](https://docs.opensearch.org/latest/ml-commons-plugin/api/agentic-memory-apis/get-memory/): Retrieves a specific memory by its ID and type.

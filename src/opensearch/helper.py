@@ -436,34 +436,6 @@ async def get_opensearch_version(args: baseToolArgs) -> Version:
         return None
 
 
-async def create_agentic_memory_container(
-    args: CreateAgenticMemoryContainerArgs,
-) -> Dict[str, Any]:
-    """Create a new memory container for storing agentic memories.
-
-    Args:
-        args: CreateAgenticMemoryContainerArgs containing name, optional description, and configuration
-
-    Returns:
-        json: Response from the create memory container endpoint, likely including the created container details
-    """
-    from .client import get_opensearch_client
-
-    async with get_opensearch_client(args) as client:
-        url = '/_plugins/_ml/memory_containers/_create'
-
-        body = args.model_dump(
-            exclude_none=True, exclude={'opensearch_cluster_name'}, by_alias=True
-        )
-
-        try:
-            response = await client.transport.perform_request(method='POST', url=url, body=body)
-        except Exception as e:
-            raise helper_error('create agentic memory container', e)
-
-        return response
-
-
 async def create_agentic_memory_session(
     args: CreateAgenticMemorySessionArgs,
 ) -> Dict[str, Any]:

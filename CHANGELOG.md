@@ -5,7 +5,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ## [Unreleased]
 
 ### Added
-- Add new toolset for the OpenSearch Agentic Memory API: `CreateAgenticMemoryContainerTool`, `CreateAgenticMemorySessionTool`, `AddAgenticMemoriesTool`, `GetAgenticMemoryTool`, `UpdateAgenticMemoryTool`, `DeleteAgenticMemoryByIDTool`, `DeleteAgenticMemoryByQueryTool`, and `SearchAgenticMemoryTool`. ([#138](https://github.com/opensearch-project/opensearch-mcp-server-py/pull/138))
+- Add new toolset for the OpenSearch Agentic Memory API: `CreateAgenticMemorySessionTool`, `AddAgenticMemoriesTool`, `GetAgenticMemoryTool`, `UpdateAgenticMemoryTool`, `DeleteAgenticMemoryByIDTool`, `DeleteAgenticMemoryByQueryTool`, and `SearchAgenticMemoryTool`. ([#138](https://github.com/opensearch-project/opensearch-mcp-server-py/pull/138))
 
 - Optimize JSON output token usage by removing formatting whitespace across all tools ([#167](https://github.com/opensearch-project/opensearch-mcp-server-py/pull/167))
 - Support basic auth through header in HTTP transport ([#152](https://github.com/opensearch-project/opensearch-mcp-server-py/pull/152))

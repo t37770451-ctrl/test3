@@ -3,14 +3,12 @@ import json
 import pytest
 from pydantic import ValidationError
 from tools.agentic_memory.params import (
-    ERR_EMBEDDING_DIMENSION_REQUIRED,
     ERR_FIELD_NOT_ALLOWED,
     ERR_FIELD_PROHIBITED,
     ERR_MESSAGES_REQUIRED,
     ERR_MISSING_LONG_TERM_FIELD,
     ERR_MISSING_WORKING_FIELD,
     ERR_STRUCTURED_DATA_REQUIRED,
-    EmbeddingModelType,
     MemoryType,
     PayloadType,
 )
@@ -107,74 +105,6 @@ class TestAgenticMemoryTools:
     def memory_container_id(self):
         """Fixture for a common memory container ID."""
         return 'HudqiJkB1SltqOcZusVU'
-
-    @pytest.mark.asyncio
-    @pytest.mark.parametrize(
-        'payload, expected_body, mock_response',
-        agentic_memory_data.CREATE_CONTAINER_HAPPY_PATH_CASES,
-    )
-    async def test_create_agentic_memory_container_happy_paths(
-        self, payload, expected_body, mock_response
-    ):
-        """Test successful create_agentic_memory_container for various configurations."""
-        # Setup
-        self.mock_client.transport.perform_request.return_value = mock_response
-
-        # Execute
-        args_payload: Dict[str, Any] = payload
-        args = self.CreateAgenticMemoryContainerArgs(opensearch_cluster_name='', **args_payload)  # type: ignore
-        result = await self._create_agentic_memory_container_tool(args)
-
-        # Assert
-        assert len(result) == 1
-        assert result[0]['type'] == 'text'
-        assert 'Successfully created memory container' in result[0]['text']
-        assert mock_response['memory_container_id'] in result[0]['text']
-
-        self.mock_client.transport.perform_request.assert_called_once_with(
-            method='POST',
-            url='/_plugins/_ml/memory_containers/_create',
-            body=expected_body,
-        )
-
-    @pytest.mark.asyncio
-    async def test_create_agentic_memory_container_api_error(self):
-        """Test create_agentic_memory_container exception handling."""
-        # Setup
-        self.mock_client.transport.perform_request.side_effect = Exception(
-            'OpenSearch connection failed'
-        )
-
-        args_payload: Dict[str, Any] = agentic_memory_data.BASIC_CONFIG_PAYLOAD
-
-        # Execute
-        args = self.CreateAgenticMemoryContainerArgs(opensearch_cluster_name='', **args_payload)  # type: ignore
-        result = await self._create_agentic_memory_container_tool(args)
-
-        # Assert
-        assert len(result) == 1
-        assert result[0]['type'] == 'text'
-        assert 'Error creating memory container: OpenSearch connection failed' in result[0]['text']
-        self.mock_client.transport.perform_request.assert_called_once()
-
-    @pytest.mark.asyncio
-    async def test_create_agentic_memory_container_validation_error(self):
-        """Test create_agentic_memory_container with validation error for TEXT_EMBEDDING without dimension."""
-        # Execute & Assert
-        with pytest.raises(ValidationError) as exc_info:
-            self.CreateAgenticMemoryContainerArgs(
-                opensearch_cluster_name='',
-                name='invalid container',
-                configuration={
-                    'embedding_model_type': EmbeddingModelType.text_embedding,
-                    'embedding_model_id': 'embedding-model-123',
-                    # Embedding_dimension is missing
-                },  # type: ignore
-            )
-
-        errors = exc_info.value.errors()
-        assert len(errors) == 1
-        assert errors[0]['type'] == ERR_EMBEDDING_DIMENSION_REQUIRED
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -814,7 +744,6 @@ class TestAgenticMemoryTools:
     def test_tool_registry(self):
         """Test TOOL_REGISTRY structure."""
         expected_tools = [
-            'CreateAgenticMemoryContainerTool',
             'CreateAgenticMemorySessionTool',
             'AddAgenticMemoriesTool',
             'GetAgenticMemoryTool',

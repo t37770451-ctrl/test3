@@ -1,7 +1,6 @@
 import json
 from .params import (
     AddAgenticMemoriesArgs,
-    CreateAgenticMemoryContainerArgs,
     CreateAgenticMemorySessionArgs,
     DeleteAgenticMemoryByIDArgs,
     DeleteAgenticMemoryByQueryArgs,
@@ -11,7 +10,6 @@ from .params import (
 )
 from opensearch.helper import (
     add_agentic_memories,
-    create_agentic_memory_container,
     create_agentic_memory_session,
     delete_agentic_memory_by_id,
     delete_agentic_memory_by_query,
@@ -20,44 +18,6 @@ from opensearch.helper import (
     update_agentic_memory,
 )
 from tools.exceptions import HelperOperationError
-
-
-async def create_agentic_memory_container_tool(
-    args: CreateAgenticMemoryContainerArgs,
-) -> list[dict]:
-    """Tool to create a new agentic memory container.
-
-    Args:
-        args: CreateAgenticMemoryContainerArgs containing the name, description, and configuration for the new container.
-
-    Returns:
-        list[dict]: A confirmation message with the new container ID in MCP format.
-    """
-    try:
-        from tools.tools import check_tool_compatibility
-
-        await check_tool_compatibility('CreateAgenticMemoryContainerTool', args)
-        result = await create_agentic_memory_container(args)
-
-        container_id = result.get('memory_container_id')
-        message = (
-            f'Successfully created memory container. ID: {container_id}. Response: {json.dumps(result)}'
-            if container_id
-            else f'Memory container created, but no ID was returned. Response: {json.dumps(result)}'
-        )
-
-        return [{'type': 'text', 'text': message}]
-
-    except Exception as e:
-        error_to_report = e
-        if isinstance(e, HelperOperationError):
-            error_to_report = e.original
-        return [
-            {
-                'type': 'text',
-                'text': f'Error creating memory container: {str(error_to_report)}',
-            }
-        ]
 
 
 async def create_agentic_memory_session_tool(
@@ -276,7 +236,6 @@ async def search_agentic_memory_tool(args: SearchAgenticMemoryArgs) -> list[dict
 
 
 __all__ = [
-    'create_agentic_memory_container_tool',
     'create_agentic_memory_session_tool',
     'add_agentic_memories_tool',
     'get_agentic_memory_tool',

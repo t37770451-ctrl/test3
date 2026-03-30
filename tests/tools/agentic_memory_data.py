@@ -505,29 +505,6 @@ MINIMAL_CONFIG_EXPECTED_BODY = {
     },
 }
 
-
-CREATE_CONTAINER_HAPPY_PATH_CASES = [
-    pytest.param(
-        BASIC_CONFIG_PAYLOAD,
-        BASIC_CONFIG_EXPECTED_BODY,
-        {'memory_container_id': 'SdjmmpgBOh0h20Y9kWuN', 'status': 'created'},
-        id='basic_config',
-    ),
-    pytest.param(
-        ADVANCED_CONFIG_PAYLOAD,
-        ADVANCED_CONFIG_EXPECTED_BODY,
-        {'memory_container_id': 'AdvancedContainer123', 'status': 'created'},
-        id='advanced_config',
-    ),
-    pytest.param(
-        MINIMAL_CONFIG_PAYLOAD,
-        MINIMAL_CONFIG_EXPECTED_BODY,
-        {'memory_container_id': 'MinimalContainer123', 'status': 'created'},
-        id='minimal_config',
-    ),
-]
-
-
 __all__ = [
     'UPDATE_HAPPY_PATH_CASES',
     'ADD_MEMORIES_HAPPY_PATH_CASES',
@@ -553,5 +530,4 @@ __all__ = [
     'ADVANCED_CONFIG_EXPECTED_BODY',
     'MINIMAL_CONFIG_PAYLOAD',
     'MINIMAL_CONFIG_EXPECTED_BODY',
-    'CREATE_CONTAINER_HAPPY_PATH_CASES',
 ]
