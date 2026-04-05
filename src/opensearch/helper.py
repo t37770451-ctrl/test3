@@ -985,9 +985,11 @@ async def submit_async_search(args) -> json:
         max_size_limit = tool_info.get('max_size_limit', 100)
         query['size'] = min(args.size, max_size_limit) if args.size else 10
 
-        params = {'wait_for_completion': 'false'}
+        params = {}
         if args.wait_for_completion_timeout:
             params['wait_for_completion_timeout'] = args.wait_for_completion_timeout
+        if args.keep_on_completion is not None:
+            params['keep_on_completion'] = str(args.keep_on_completion).lower()
         if args.keep_alive:
             params['keep_alive'] = args.keep_alive
 

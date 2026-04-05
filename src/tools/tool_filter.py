@@ -1,20 +1,21 @@
 # Copyright OpenSearch Contributors
 # SPDX-License-Identifier: Apache-2.0
 
-import re
-import os
 import json
 import logging
+import os
+import re
 from .tool_params import baseToolArgs
-from .tools import TOOL_REGISTRY
+from .tools import TOOL_REGISTRY  # noqa: F401
 from .utils import (
     is_tool_compatible,
-    parse_comma_separated,
     load_yaml_config,
+    parse_comma_separated,
     validate_tools,
 )
-from opensearch.helper import get_opensearch_version
 from mcp_server_opensearch.global_state import get_mode
+from opensearch.helper import get_opensearch_version
+
 
 # Global variable to store the resolved allow_write setting
 # This is set during server initialization and used by individual tools
@@ -165,6 +166,9 @@ def process_tool_filter(
             'ListIndexTool',
             'IndexMappingTool',
             'SearchIndexTool',
+            'SubmitAsyncSearchTool',
+            'GetAsyncSearchTool',
+            'DeleteAsyncSearchTool',
             'GetShardsTool',
             'ClusterHealthTool',
             'CountTool',

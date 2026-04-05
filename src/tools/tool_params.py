@@ -641,6 +641,10 @@ class SubmitAsyncSearchArgs(baseToolArgs):
         default='5s',
         description='How long to wait for the search to complete before returning a partial response (e.g., "5s", "1m"). Defaults to "5s".',
     )
+    keep_on_completion: Optional[bool] = Field(
+        default=True,
+        description='Whether to keep the async search result after completion so it can still be retrieved by ID. Defaults to true.',
+    )
     keep_alive: Optional[str] = Field(
         default='5m',
         description='How long to keep the async search context alive for retrieving results later (e.g., "5m", "1h"). Defaults to "5m".',
@@ -661,6 +665,7 @@ class SubmitAsyncSearchArgs(baseToolArgs):
                     'index': 'logs-*',
                     'query_dsl': {'query': {'range': {'timestamp': {'gte': 'now-1h'}}}},
                     'wait_for_completion_timeout': '10s',
+                    'keep_on_completion': True,
                     'keep_alive': '1h',
                     'size': 50,
                 },

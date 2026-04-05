@@ -1,10 +1,10 @@
+import copy
 import pytest
 from semver import Version
-from unittest.mock import patch, MagicMock
-from tools.utils import is_tool_compatible
 from tools.tool_filter import get_tools, process_tool_filter
-from tools.tool_params import baseToolArgs
-import copy
+from tools.utils import is_tool_compatible
+from unittest.mock import MagicMock, patch
+
 
 # A dictionary for mocking TOOL_REGISTRY
 MOCK_TOOL_REGISTRY = {
@@ -311,6 +311,18 @@ class TestProcessToolFilter:
         self.tool_registry = {
             'ListIndexTool': {'display_name': 'ListIndexTool', 'http_methods': 'GET'},
             'SearchIndexTool': {'display_name': 'SearchIndexTool', 'http_methods': 'GET, POST'},
+            'SubmitAsyncSearchTool': {
+                'display_name': 'SubmitAsyncSearchTool',
+                'http_methods': 'POST',
+            },
+            'GetAsyncSearchTool': {
+                'display_name': 'GetAsyncSearchTool',
+                'http_methods': 'GET',
+            },
+            'DeleteAsyncSearchTool': {
+                'display_name': 'DeleteAsyncSearchTool',
+                'http_methods': 'DELETE',
+            },
             'MsearchTool': {'display_name': 'MsearchTool', 'http_methods': 'GET, POST'},
             'ExplainTool': {'display_name': 'ExplainTool', 'http_methods': 'GET, POST'},
             'ClusterHealthTool': {'display_name': 'ClusterHealthTool', 'http_methods': 'GET'},
@@ -400,6 +412,9 @@ class TestProcessToolFilter:
         # Core tools
         assert 'ListIndexTool' in self.tool_registry
         assert 'ClusterHealthTool' in self.tool_registry
+        assert 'SubmitAsyncSearchTool' in self.tool_registry
+        assert 'GetAsyncSearchTool' in self.tool_registry
+        assert 'DeleteAsyncSearchTool' in self.tool_registry
 
         # Non-core tools
         assert 'IndicesStatsTool' not in self.tool_registry
@@ -580,7 +595,7 @@ class TestAllowWriteSettings:
 
     def test_set_and_get_allow_write_setting(self):
         """Test basic set and get functionality for allow_write setting."""
-        from tools.tool_filter import set_allow_write_setting, get_allow_write_setting
+        from tools.tool_filter import get_allow_write_setting, set_allow_write_setting
 
         # Test setting to False
         set_allow_write_setting(False)

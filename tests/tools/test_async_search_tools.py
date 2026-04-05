@@ -74,7 +74,7 @@ class TestAsyncSearchTools:
 
     @pytest.mark.asyncio
     async def test_submit_async_search_tool_with_custom_params(self):
-        """Test that wait_for_completion_timeout and keep_alive are passed correctly."""
+        """Test that async search query parameters are passed correctly."""
         mock_response = {'id': 'test-id', 'state': 'RUNNING'}
         self.mock_client.transport.perform_request = AsyncMock(return_value=mock_response)
 
@@ -82,6 +82,7 @@ class TestAsyncSearchTools:
             index='logs-*',
             query_dsl={'query': {'range': {'timestamp': {'gte': 'now-1h'}}}},
             wait_for_completion_timeout='10s',
+            keep_on_completion=True,
             keep_alive='1h',
             size=50,
             opensearch_cluster_name='',
@@ -92,8 +93,27 @@ class TestAsyncSearchTools:
         call_args = self.mock_client.transport.perform_request.call_args
         params = call_args.kwargs['params']
         assert params['wait_for_completion_timeout'] == '10s'
+        assert params['keep_on_completion'] == 'true'
         assert params['keep_alive'] == '1h'
-        assert params['wait_for_completion'] == 'false'
+
+    @pytest.mark.asyncio
+    async def test_submit_async_search_tool_can_disable_keep_on_completion(self):
+        """Test that keep_on_completion can be explicitly disabled."""
+        mock_response = {'id': 'test-id', 'state': 'RUNNING'}
+        self.mock_client.transport.perform_request = AsyncMock(return_value=mock_response)
+
+        args = self.SubmitAsyncSearchArgs(
+            index='logs-*',
+            query_dsl={'query': {'match_all': {}}},
+            keep_on_completion=False,
+            opensearch_cluster_name='',
+        )
+        result = await self._submit_async_search_tool(args)
+
+        assert 'Async search submitted' in result[0]['text']
+        call_args = self.mock_client.transport.perform_request.call_args
+        params = call_args.kwargs['params']
+        assert params['keep_on_completion'] == 'false'
 
     @pytest.mark.asyncio
     async def test_submit_async_search_tool_size_capped(self):
