@@ -452,18 +452,7 @@ python -m mcp_server_opensearch --mode multi --config config.yml --profile my-aw
 python -m mcp_server_opensearch --mode multi
 ```
 
-### Kubernetes Deployment
 
-For Kubernetes deployments, run the server in streaming mode behind a `Service` and `Ingress`, and mount the OpenSearch CA/client certificate files from a secret:
-
-1. Build the image with the included [Dockerfile](./Dockerfile).
-2. Create a secret containing `ca.crt`, `tls.crt`, and `tls.key`.
-3. Mount that secret into the pod and set:
-   - `OPENSEARCH_CA_CERT_PATH`
-   - `OPENSEARCH_CLIENT_CERT_PATH`
-   - `OPENSEARCH_CLIENT_KEY_PATH`
-4. Expose the pod through a `Service`.
-5. Publish `/mcp` and `/health` through an `Ingress`.
 
 ## Command Line Parameters
 
