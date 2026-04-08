@@ -3,7 +3,6 @@
 
 import json
 from .tool_params import (
-    CatNodesArgs,
     CreateJudgmentListArgs,
     CreateLLMJudgmentListArgs,
     CreateSearchConfigurationArgs,
@@ -17,12 +16,14 @@ from .tool_params import (
     GetIndexStatsArgs,
     GetJudgmentListArgs,
     GetLongRunningTasksArgs,
+    CatNodesArgs,
     GetNodesArgs,
     GetNodesHotThreadsArgs,
     GetQueryInsightsArgs,
     GetSearchConfigurationArgs,
     GetSegmentsArgs,
     GetShardsArgs,
+    ListClustersArgs,
     ListIndicesArgs,
     SearchIndexArgs,
     GetQuerySetArgs,
@@ -81,6 +82,16 @@ from opensearch.helper import (
 from tools.agentic_memory.actions import *
 from tools.agentic_memory.params import *
 from .skills_tools import SKILLS_TOOLS_REGISTRY
+from mcp_server_opensearch.clusters_information import cluster_registry
+
+
+async def list_clusters_tool(args: ListClustersArgs) -> list[dict]:
+    try:
+        cluster_names = list(cluster_registry.keys())
+        formatted_names = json.dumps(cluster_names, separators=(',', ':'))
+        return [{'type': 'text', 'text': f'Available clusters:\n{formatted_names}'}]
+    except Exception as e:
+        return log_tool_error('ListClustersTool', e, 'listing clusters')
 
 
 async def check_tool_compatibility(tool_name: str, args: baseToolArgs = None):
@@ -884,6 +895,363 @@ async def search_experiments_tool(args: SearchExperimentsArgs) -> list[dict]:
     except Exception as e:
         return log_tool_error('SearchExperimentsTool', e, 'searching experiments')
 
+
+async def create_search_configuration_tool(args: CreateSearchConfigurationArgs) -> list[dict]:
+    """Tool to create a search configuration via the Search Relevance plugin.
+
+    Args:
+        args: CreateSearchConfigurationArgs
+
+    Returns:
+        list[dict]: Created configuration details in MCP format
+    """
+    try:
+        await check_tool_compatibility('CreateSearchConfigurationTool', args)
+        result = await create_search_configuration(args)
+        formatted_result = json.dumps(result, separators=(',', ':'))
+        return [{'type': 'text', 'text': f'Search configuration created:\n{formatted_result}'}]
+    except Exception as e:
+        return log_tool_error('CreateSearchConfigurationTool', e, 'creating search configuration')
+
+
+async def get_search_configuration_tool(args: GetSearchConfigurationArgs) -> list[dict]:
+    """Tool to retrieve a search configuration by ID.
+
+    Args:
+        args: GetSearchConfigurationArgs
+
+    Returns:
+        list[dict]: Search configuration details in MCP format
+    """
+    try:
+        await check_tool_compatibility('GetSearchConfigurationTool', args)
+        result = await get_search_configuration(args)
+        formatted_result = json.dumps(result, separators=(',', ':'))
+        return [
+            {
+                'type': 'text',
+                'text': f'Search configuration {args.search_configuration_id}:\n{formatted_result}',
+            }
+        ]
+    except Exception as e:
+        return log_tool_error('GetSearchConfigurationTool', e, 'retrieving search configuration')
+
+
+async def delete_search_configuration_tool(args: DeleteSearchConfigurationArgs) -> list[dict]:
+    """Tool to delete a search configuration by ID.
+
+    Args:
+        args: DeleteSearchConfigurationArgs
+
+    Returns:
+        list[dict]: Deletion result in MCP format
+    """
+    try:
+        await check_tool_compatibility('DeleteSearchConfigurationTool', args)
+        result = await delete_search_configuration(args)
+        formatted_result = json.dumps(result, separators=(',', ':'))
+        return [
+            {
+                'type': 'text',
+                'text': f'Search configuration {args.search_configuration_id} deleted:\n{formatted_result}',
+            }
+        ]
+    except Exception as e:
+        return log_tool_error('DeleteSearchConfigurationTool', e, 'deleting search configuration')
+
+
+async def get_query_set_tool(args: GetQuerySetArgs) -> list[dict]:
+    """Tool to retrieve a specific query set by ID from the Search Relevance plugin.
+
+    Args:
+        args: GetQuerySetArgs containing the query_set_id
+
+    Returns:
+        list[dict]: Query set details in MCP format
+    """
+    try:
+        await check_tool_compatibility('GetQuerySetTool', args)
+        result = await get_query_set(args)
+        formatted_result = json.dumps(result, separators=(',', ':'))
+        return [{'type': 'text', 'text': f'Query set {args.query_set_id}:\n{formatted_result}'}]
+    except Exception as e:
+        return log_tool_error('GetQuerySetTool', e, 'retrieving query set')
+
+
+async def create_query_set_tool(args: CreateQuerySetArgs) -> list[dict]:
+    """Tool to create a new query set with a list of queries.
+
+    Args:
+        args: CreateQuerySetArgs containing name, queries (JSON string), and optional description
+
+    Returns:
+        list[dict]: Result of the creation operation in MCP format
+    """
+    try:
+        await check_tool_compatibility('CreateQuerySetTool', args)
+        result = await create_query_set(args)
+        formatted_result = json.dumps(result, separators=(',', ':'))
+        return [{'type': 'text', 'text': f'Query set created:\n{formatted_result}'}]
+    except Exception as e:
+        return log_tool_error('CreateQuerySetTool', e, 'creating query set')
+
+
+async def sample_query_set_tool(args: SampleQuerySetArgs) -> list[dict]:
+    """Tool to create a query set by sampling top queries from user behavior data (UBI).
+
+    Args:
+        args: SampleQuerySetArgs containing name, query_set_size, and optional description
+
+    Returns:
+        list[dict]: Result of the sampling operation in MCP format
+    """
+    try:
+        await check_tool_compatibility('SampleQuerySetTool', args)
+        result = await sample_query_set(args)
+        formatted_result = json.dumps(result, separators=(',', ':'))
+        return [{'type': 'text', 'text': f'Query set sampled:\n{formatted_result}'}]
+    except Exception as e:
+        return log_tool_error('SampleQuerySetTool', e, 'sampling query set')
+
+
+async def delete_query_set_tool(args: DeleteQuerySetArgs) -> list[dict]:
+    """Tool to delete a query set by ID.
+
+    Args:
+        args: DeleteQuerySetArgs containing the query_set_id
+
+    Returns:
+        list[dict]: Result of the deletion operation in MCP format
+    """
+    try:
+        await check_tool_compatibility('DeleteQuerySetTool', args)
+        result = await delete_query_set(args)
+        formatted_result = json.dumps(result, separators=(',', ':'))
+        return [{'type': 'text', 'text': f'Query set {args.query_set_id} deleted:\n{formatted_result}'}]
+    except Exception as e:
+        return log_tool_error('DeleteQuerySetTool', e, 'deleting query set')
+
+
+async def get_judgment_list_tool(args: GetJudgmentListArgs) -> list[dict]:
+    """Tool to retrieve a specific judgment list by ID from the Search Relevance plugin.
+
+    Args:
+        args: GetJudgmentListArgs containing the judgment_id
+
+    Returns:
+        list[dict]: Judgment list details in MCP format
+    """
+    try:
+        await check_tool_compatibility('GetJudgmentListTool', args)
+        result = await get_judgment_list(args)
+        formatted_result = json.dumps(result, separators=(',', ':'))
+        return [{'type': 'text', 'text': f'Judgment list: {args.judgment_id}:\n{formatted_result}'}]
+    except Exception as e:
+        return log_tool_error('GetJudgmentListTool', e, 'retrieving judgment list')
+
+
+async def create_judgment_list_tool(args: CreateJudgmentListArgs) -> list[dict]:
+    """Tool to create a judgment list with manual relevance ratings.
+
+    Args:
+        args: CreateJudgmentListArgs containing name, judgment_ratings (JSON string), and optional description
+
+    Returns:
+        list[dict]: Result of the creation operation in MCP format
+    """
+    try:
+        await check_tool_compatibility('CreateJudgmentListTool', args)
+        result = await create_judgment_list(args)
+        formatted_result = json.dumps(result, separators=(',', ':'))
+        return [{'type': 'text', 'text': f'Judgment created:\n{formatted_result}'}]
+    except Exception as e:
+        return log_tool_error('CreateJudgmentListTool', e, 'creating judgment list')
+
+
+async def create_ubi_judgment_list_tool(args: CreateUBIJudgmentListArgs) -> list[dict]:
+    """Tool to create a judgment list by mining relevance signals from UBI click data.
+
+    Args:
+        args: CreateUBIJudgmentListArgs containing name, click_model, max_rank, and optional date range
+
+    Returns:
+        list[dict]: Result of the creation operation in MCP format
+    """
+    try:
+        await check_tool_compatibility('CreateUBIJudgmentListTool', args)
+        result = await create_ubi_judgment_list(args)
+        formatted_result = json.dumps(result, separators=(',', ':'))
+        return [{'type': 'text', 'text': f'UBI judgment created:\n{formatted_result}'}]
+    except Exception as e:
+        return log_tool_error('CreateUBIJudgmentListTool', e, 'creating UBI judgment')
+
+
+async def delete_judgment_list_tool(args: DeleteJudgmentListArgs) -> list[dict]:
+    """Tool to delete a judgment list by ID from the Search Relevance plugin.
+
+    Args:
+        args: DeleteJudgmentListArgs containing the judgment_id
+
+    Returns:
+        list[dict]: Result of the deletion operation in MCP format
+    """
+    try:
+        await check_tool_compatibility('DeleteJudgmentListTool', args)
+        result = await delete_judgment_list(args)
+        formatted_result = json.dumps(result, separators=(',', ':'))
+        return [{'type': 'text', 'text': f'Judgment list {args.judgment_id} deleted:\n{formatted_result}'}]
+    except Exception as e:
+        return log_tool_error('DeleteJudgmentListTool', e, 'deleting judgment list')
+
+
+async def create_llm_judgment_list_tool(args: CreateLLMJudgmentListArgs) -> list[dict]:
+    """Tool to create a judgment list using an LLM model via the Search Relevance plugin.
+
+    For each query in the query set, the top k documents are retrieved using the
+    specified search configuration and rated by the LLM model.
+
+    Args:
+        args: CreateLLMJudgmentListArgs containing name, query_set_id, search_configuration_id,
+              model_id, size, and optional context_fields
+
+    Returns:
+        list[dict]: Result of the creation operation in MCP format
+    """
+    try:
+        await check_tool_compatibility('CreateLLMJudgmentListTool', args)
+        result = await create_llm_judgment_list(args)
+        formatted_result = json.dumps(result, separators=(',', ':'))
+        return [{'type': 'text', 'text': f'LLM judgment list created:\n{formatted_result}'}]
+    except Exception as e:
+        return log_tool_error('CreateLLMJudgmentListTool', e, 'creating LLM judgment list')
+
+
+async def get_experiment_tool(args: GetExperimentArgs) -> list[dict]:
+    """Tool to retrieve a specific experiment by ID from the Search Relevance plugin.
+
+    Args:
+        args: GetExperimentArgs containing the experiment_id
+
+    Returns:
+        list[dict]: Experiment details in MCP format
+    """
+    try:
+        await check_tool_compatibility('GetExperimentTool', args)
+        result = await get_experiment(args)
+        formatted_result = json.dumps(result, separators=(',', ':'))
+        return [{'type': 'text', 'text': f'Experiment {args.experiment_id}:\n{formatted_result}'}]
+    except Exception as e:
+        return log_tool_error('GetExperimentTool', e, 'retrieving experiment')
+
+
+async def create_experiment_tool(args: CreateExperimentArgs) -> list[dict]:
+    """Tool to create a search relevance experiment via the Search Relevance plugin.
+
+    Args:
+        args: CreateExperimentArgs containing query_set_id, search_configuration_ids,
+              experiment_type, size, and optional judgment_list_ids
+
+    Returns:
+        list[dict]: Result of the creation operation in MCP format
+    """
+    try:
+        await check_tool_compatibility('CreateExperimentTool', args)
+        result = await create_experiment(args)
+        formatted_result = json.dumps(result, separators=(',', ':'))
+        return [{'type': 'text', 'text': f'Experiment created:\n{formatted_result}'}]
+    except Exception as e:
+        return log_tool_error('CreateExperimentTool', e, 'creating experiment')
+
+
+async def delete_experiment_tool(args: DeleteExperimentArgs) -> list[dict]:
+    """Tool to delete an experiment by ID from the Search Relevance plugin.
+
+    Args:
+        args: DeleteExperimentArgs containing the experiment_id
+
+    Returns:
+        list[dict]: Result of the deletion operation in MCP format
+    """
+    try:
+        await check_tool_compatibility('DeleteExperimentTool', args)
+        result = await delete_experiment(args)
+        formatted_result = json.dumps(result, separators=(',', ':'))
+        return [{'type': 'text', 'text': f'Experiment {args.experiment_id} deleted:\n{formatted_result}'}]
+    except Exception as e:
+        return log_tool_error('DeleteExperimentTool', e, 'deleting experiment')
+
+
+async def search_query_sets_tool(args: SearchQuerySetsArgs) -> list[dict]:
+    """Tool to search query sets using OpenSearch query DSL.
+
+    Args:
+        args: SearchQuerySetsArgs containing an optional query_body
+
+    Returns:
+        list[dict]: Search results in MCP format
+    """
+    try:
+        await check_tool_compatibility('SearchQuerySetsTool', args)
+        result = await search_query_sets(args)
+        formatted_result = json.dumps(result, separators=(',', ':'))
+        return [{'type': 'text', 'text': f'Query set search results:\n{formatted_result}'}]
+    except Exception as e:
+        return log_tool_error('SearchQuerySetsTool', e, 'searching query sets')
+
+
+async def search_search_configurations_tool(args: SearchSearchConfigurationsArgs) -> list[dict]:
+    """Tool to search search configurations using OpenSearch query DSL.
+
+    Args:
+        args: SearchSearchConfigurationsArgs containing an optional query_body
+
+    Returns:
+        list[dict]: Search results in MCP format
+    """
+    try:
+        await check_tool_compatibility('SearchSearchConfigurationsTool', args)
+        result = await search_search_configurations(args)
+        formatted_result = json.dumps(result, separators=(',', ':'))
+        return [{'type': 'text', 'text': f'Search configuration search results:\n{formatted_result}'}]
+    except Exception as e:
+        return log_tool_error('SearchSearchConfigurationsTool', e, 'searching search configurations')
+
+
+async def search_judgments_tool(args: SearchJudgmentsArgs) -> list[dict]:
+    """Tool to search judgments using OpenSearch query DSL.
+
+    Args:
+        args: SearchJudgmentsArgs containing an optional query_body
+
+    Returns:
+        list[dict]: Search results in MCP format
+    """
+    try:
+        await check_tool_compatibility('SearchJudgmentsTool', args)
+        result = await search_judgments(args)
+        formatted_result = json.dumps(result, separators=(',', ':'))
+        return [{'type': 'text', 'text': f'Judgment search results:\n{formatted_result}'}]
+    except Exception as e:
+        return log_tool_error('SearchJudgmentsTool', e, 'searching judgments')
+
+
+async def search_experiments_tool(args: SearchExperimentsArgs) -> list[dict]:
+    """Tool to search experiments using OpenSearch query DSL.
+
+    Args:
+        args: SearchExperimentsArgs containing an optional query_body
+
+    Returns:
+        list[dict]: Search results in MCP format
+    """
+    try:
+        await check_tool_compatibility('SearchExperimentsTool', args)
+        result = await search_experiments(args)
+        formatted_result = json.dumps(result, separators=(',', ':'))
+        return [{'type': 'text', 'text': f'Experiment search results:\n{formatted_result}'}]
+    except Exception as e:
+        return log_tool_error('SearchExperimentsTool', e, 'searching experiments')
+
 from .generic_api_tool import GenericOpenSearchApiArgs, generic_opensearch_api_tool
 
 
@@ -1287,6 +1655,15 @@ TOOL_REGISTRY = {
         'args_model': CreateLLMJudgmentListArgs,
         'min_version': '3.1.0',
         'http_methods': 'PUT',
+    },
+    'ListClustersTool': {
+        'display_name': 'ListClustersTool',
+        'description': 'Lists all available OpenSearch clusters configured in the server. Returns the cluster names that can be used with other tools.',
+        'input_schema': ListClustersArgs.model_json_schema(),
+        'function': list_clusters_tool,
+        'args_model': ListClustersArgs,
+        'http_methods': 'GET',
+        'multi_only': True,
     },
 }
 
