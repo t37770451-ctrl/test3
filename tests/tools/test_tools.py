@@ -3,7 +3,7 @@
 
 import json
 import pytest
-from unittest.mock import Mock, patch, AsyncMock
+from unittest.mock import AsyncMock, Mock, patch
 
 
 class TestTools:

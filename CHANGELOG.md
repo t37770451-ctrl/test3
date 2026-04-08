@@ -28,6 +28,29 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ## [Released 0.8.0]
 ### Added
 
+### Fixed
+
+### Removed
+
+## [Released 0.9.0]
+### Added
+
+- Add Search Relevance Workbench tools for query set management (add, get, delete) ([#187](https://github.com/opensearch-project/opensearch-mcp-server-py/pull/187))
+- Add Search Relevance Workbench tools for judgment list management (create, get, delete) ([#190](https://github.com/opensearch-project/opensearch-mcp-server-py/pull/190))
+- Add Search Relevance Workbench tools for experiment management (create, get, delete) ([#192](https://github.com/opensearch-project/opensearch-mcp-server-py/pull/192))
+- Add Search Relevance Workbench `_search` API tools for querying query sets, search configurations, judgments, and experiments using OpenSearch query DSL ([#193](https://github.com/opensearch-project/opensearch-mcp-server-py/pull/193))
+
+### Improved
+
+- Enhanced SearchIndexTool descriptions to improve LLM query construction consistency ([#194](https://github.com/opensearch-project/opensearch-mcp-server-py/pull/194))
+- Added Bearer Authorization support when header authentication is enabled ([#189](https://github.com/opensearch-project/opensearch-mcp-server-py/pull/189))
+- Sanitized write-disabled error message in GenericOpenSearchApiTool to avoid exposing internal configuration details ([#196](https://github.com/opensearch-project/opensearch-mcp-server-py/pull/196))
+
+## [Released 0.8.0]
+### Added
+- Add new toolset for the OpenSearch Agentic Memory API: `CreateAgenticMemorySessionTool`, `AddAgenticMemoriesTool`, `GetAgenticMemoryTool`, `UpdateAgenticMemoryTool`, `DeleteAgenticMemoryByIDTool`, `DeleteAgenticMemoryByQueryTool`, and `SearchAgenticMemoryTool`. Agentic memory tools are disabled by default and automatically enabled when `memory_container_id` is configured via the `agentic_memory` config section or `OPENSEARCH_MEMORY_CONTAINER_ID` environment variable. The `memory_container_id` is automatically pre-filled in all tool calls so agents don't need to pass it manually. ([#138](https://github.com/opensearch-project/opensearch-mcp-server-py/pull/138))
+- Add support for setting default values for tool arguments via config ([#138](https://github.com/opensearch-project/opensearch-mcp-server-py/pull/138))
+
 - Optimize JSON output token usage by removing formatting whitespace across all tools ([#167](https://github.com/opensearch-project/opensearch-mcp-server-py/pull/167))
 - Rename SearchIndexTool parameter `query` to `query_dsl` to avoid confusion with nested query objects ([#172](https://github.com/opensearch-project/opensearch-mcp-server-py/pull/172))
 - Add structured JSON logging (`--log-format json`) for monitoring and metrics ([#178](https://github.com/opensearch-project/opensearch-mcp-server-py/pull/178))
@@ -60,6 +83,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Fix search index tool time format issue. ([#159](https://github.com/opensearch-project/opensearch-mcp-server-py/pull/159))
 
 ### Removed
+- Remove `CreateAgenticMemoryContainerTool` - container creation is an infrastructure setup operation that should be done via the OpenSearch API or dashboard, not at agent runtime ([#138](https://github.com/opensearch-project/opensearch-mcp-server-py/pull/138))
 
 ## [Released 0.6.1]
 ### Added

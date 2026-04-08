@@ -1,7 +1,9 @@
 version: "1.0"
 description: "Unified OpenSearch MCP Server Configuration"
 
+# ==============================================================================
 # Cluster configurations (used in Multi Mode)
+# ==============================================================================
 clusters:
   local-cluster:
     opensearch_url: "http://localhost:9200"
@@ -34,7 +36,21 @@ clusters:
     opensearch_url: "https://your-opensearch-domain.us-east-2.es.amazonaws.com"
     opensearch_header_auth: true
 
-Tool customization configurations (supported in both Single and Multi Mode)
+# ==============================================================================
+# Agentic Memory Configuration (supported in both Single and Multi Mode)
+# ==============================================================================
+# Configure the memory container ID for agentic memory tools.
+# When set, agentic memory tools will be automatically enabled
+#
+# Priority: Config file setting > OPENSEARCH_MEMORY_CONTAINER_ID env var
+# Example configuration:
+#
+# agentic_memory:
+#   memory_container_id: "your-container-id-here"
+
+# ==============================================================================
+# Tool customization configurations (supported in both Single and Multi Mode)
+# ==============================================================================
 tools:
   ListIndexTool:
     display_name: "My_Custom_Index_Lister"

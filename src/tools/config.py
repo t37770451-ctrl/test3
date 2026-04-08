@@ -3,6 +3,7 @@
 
 import copy
 import logging
+import os
 import re
 import yaml
 from typing import Dict, Any
@@ -236,6 +237,46 @@ def _apply_validated_configs(
                 tool_info[field_name] = field_value
 
 
+def _apply_memory_container_defaults(
+    custom_registry: Dict[str, Any], container_id: str
+) -> None:
+    """
+    Set memory_container_id as a default in the input_schema of all agentic memory tools.
+
+    This modifies the JSON schema so that:
+    1. MCP clients see the default value (and the field is no longer required)
+    2. validate_args_for_mode can inject it at runtime when agents omit it
+
+    :param custom_registry: The registry to modify
+    :param container_id: The memory container ID to set as default
+    """
+    agentic_memory_tool_names = [
+        'CreateAgenticMemorySessionTool',
+        'AddAgenticMemoriesTool',
+        'GetAgenticMemoryTool',
+        'UpdateAgenticMemoryTool',
+        'DeleteAgenticMemoryByIDTool',
+        'DeleteAgenticMemoryByQueryTool',
+        'SearchAgenticMemoryTool',
+    ]
+
+    for tool_name in agentic_memory_tool_names:
+        if tool_name not in custom_registry:
+            continue
+
+        tool_info = custom_registry[tool_name]
+        base_schema = tool_info.get('input_schema') or {}
+        input_schema = copy.deepcopy(base_schema)
+        properties = input_schema.get('properties') or {}
+
+        if 'memory_container_id' in properties:
+            properties['memory_container_id']['default'] = container_id
+            if 'required' in input_schema and 'memory_container_id' in input_schema['required']:
+                input_schema['required'].remove('memory_container_id')
+
+        tool_info['input_schema'] = input_schema
+
+
 def apply_custom_tool_config(
     tool_registry: Dict[str, Any],
     config_file_path: str,
@@ -248,12 +289,20 @@ def apply_custom_tool_config(
     1. Config file settings (if config file is provided, CLI is completely ignored)
     2. CLI argument settings (only used if no config file is provided)
 
+    Additionally, if memory_container_id is configured (via config file or environment variable),
+    it will be automatically set as a default value for all agentic memory tools.
+
     :param tool_registry: The original tool registry
     :param config_file_path: Path to the YAML configuration file
     :param cli_tool_overrides: Dictionary of tool overrides from command line
     :return: A new tool registry with custom configurations applied
     """
     custom_registry = copy.deepcopy(tool_registry)
+
+    # Apply memory_container_id defaults to agentic memory tools
+    container_id = get_memory_container_id_from_config(config_file_path)
+    if container_id:
+        _apply_memory_container_defaults(custom_registry, container_id)
 
     # Load configuration from file
     config_from_file = {}
@@ -284,3 +333,49 @@ def apply_custom_tool_config(
     default_tool_registry.update(custom_registry)
 
     return custom_registry
+
+
+def get_memory_container_id_from_config(config_file_path: str = '') -> str:
+    """Get memory container ID from config file or environment variable.
+
+    Priority order:
+    1. Config file (if provided and contains agentic_memory.memory_container_id)
+    2. Environment variable OPENSEARCH_MEMORY_CONTAINER_ID
+
+    :param config_file_path: Path to the YAML configuration file
+    :return: Memory container ID or empty string if not found
+    """
+    container_id = ''
+
+    if config_file_path:
+        try:
+            with open(config_file_path, 'r') as f:
+                config = yaml.safe_load(f)
+                if config:
+                    agentic_memory_config = config.get('agentic_memory', {})
+                    if isinstance(agentic_memory_config, dict):
+                        container_id = agentic_memory_config.get('memory_container_id', '')
+                        if container_id:
+                            logging.info(f'Using memory_container_id from config file: {container_id}')
+                            return container_id
+        except Exception as e:
+            logging.debug(f'Could not load memory_container_id from config file {config_file_path}: {e}')
+
+    container_id = os.getenv('OPENSEARCH_MEMORY_CONTAINER_ID', '')
+    if container_id:
+        logging.info(f'Using memory_container_id from environment variable: {container_id}')
+
+    return container_id
+
+
+def should_enable_agentic_memory_tools(config_file_path: str = '') -> bool:
+    """Check if agentic memory tools should be enabled.
+
+    Memory tools are enabled only if memory_container_id is configured either
+    in the config file or as an environment variable.
+
+    :param config_file_path: Path to the YAML configuration file
+    :return: True if agentic memory tools should be enabled, False otherwise
+    """
+    container_id = get_memory_container_id_from_config(config_file_path)
+    return bool(container_id)
