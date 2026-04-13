@@ -49,7 +49,7 @@ def _create_os_client():
 
     aws_key = os.environ.get('IT_AWS_ACCESS_KEY_ID')
     aws_secret = os.environ.get('IT_AWS_SECRET_ACCESS_KEY')
-    aws_region = os.environ.get('IT_AWS_REGION', 'us-east-2')
+    aws_region = os.environ.get('IT_AWS_REGION', 'us-west-2')
     basic_user = os.environ.get('IT_BASIC_AUTH_USERNAME')
     basic_pass = os.environ.get('IT_BASIC_AUTH_PASSWORD')
 

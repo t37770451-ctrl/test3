@@ -96,7 +96,7 @@ def get_default_server_env() -> dict:
 
     aws_key = os.environ.get('IT_AWS_ACCESS_KEY_ID')
     aws_secret = os.environ.get('IT_AWS_SECRET_ACCESS_KEY')
-    aws_region = os.environ.get('IT_AWS_REGION', 'us-east-2')
+    aws_region = os.environ.get('IT_AWS_REGION', 'us-west-2')
 
     if aws_key and aws_secret:
         return {

@@ -38,7 +38,7 @@ class TestBadCredentials:
     async def test_expired_aws_token_header_auth(self, header_auth_server):
         bad_headers = {
             'opensearch-url': os.environ.get('IT_OPENSEARCH_URL', ''),
-            'aws-region': os.environ.get('IT_AWS_REGION', 'us-east-2'),
+            'aws-region': os.environ.get('IT_AWS_REGION', 'us-west-2'),
             'aws-access-key-id': 'ASIAINVALIDKEY12345XX',
             'aws-secret-access-key': 'invalid-secret-xxxxxxxxxx',
             'aws-session-token': 'invalid-token',

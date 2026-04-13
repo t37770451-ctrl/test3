@@ -43,5 +43,5 @@ async def mcp_client(server_url: str, headers: dict | None = None, timeout: floa
         # the anyio cancel scopes, causing a harmless RuntimeError.
         try:
             await stack.aclose()
-        except Exception as e:
+        except RuntimeError as e:
             logger.debug(f'Suppressed exception during client teardown: {e}')
