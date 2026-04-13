@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import pytest
+from integration_tests.framework.assertions import assert_tool_success
 from integration_tests.framework.constants import TEST_INDEX
 
 
@@ -19,6 +20,4 @@ class TestDataDistributionTool:
                 'selectionTimeRangeEnd': '2025-01-04',
             },
         )
-        # This tool requires OS 3.3+ with ML plugin — may not be available
-        # Accept either success or error
-        assert result.content
+        assert_tool_success(result, 'DataDistributionTool result')

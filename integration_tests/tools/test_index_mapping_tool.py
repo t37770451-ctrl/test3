@@ -12,13 +12,10 @@ class TestIndexMappingTool:
         result = await default_client.call_tool(
             'IndexMappingTool', arguments={'index': TEST_INDEX}
         )
-        response = assert_tool_success(result)
-        # Should contain our mapped fields
-        assert 'title' in response
-        assert 'category' in response
+        assert_tool_success(result, 'Mapping for', 'title', 'category', 'timestamp', 'value')
 
     async def test_nonexistent_index(self, default_client):
         result = await default_client.call_tool(
             'IndexMappingTool', arguments={'index': 'nonexistent_xyz_404_test'}
         )
-        assert_tool_error(result)
+        assert_tool_error(result, 'index_not_found_exception')

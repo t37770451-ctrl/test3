@@ -34,7 +34,7 @@ class TestWriteDisabled:
                 'body': {'test': 'data'},
             },
         )
-        assert_tool_error(result)
+        assert_tool_error(result, 'Write operations are disabled')
 
     async def test_generic_api_put_blocked(self, write_disabled_client):
         result = await write_disabled_client.call_tool(
@@ -45,7 +45,7 @@ class TestWriteDisabled:
                 'body': {'test': 'data'},
             },
         )
-        assert_tool_error(result)
+        assert_tool_error(result, 'Write operations are disabled')
 
     async def test_generic_api_delete_blocked(self, write_disabled_client):
         result = await write_disabled_client.call_tool(
@@ -55,11 +55,11 @@ class TestWriteDisabled:
                 'method': 'DELETE',
             },
         )
-        assert_tool_error(result)
+        assert_tool_error(result, 'Write operations are disabled')
 
     async def test_generic_api_get_still_works(self, write_disabled_client):
         result = await write_disabled_client.call_tool(
             'GenericOpenSearchApiTool',
             arguments={'path': '/_cluster/health', 'method': 'GET'},
         )
-        assert_tool_success(result)
+        assert_tool_success(result, 'OpenSearch API Response')

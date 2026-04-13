@@ -12,11 +12,10 @@ class TestGetIndexInfoTool:
         result = await default_client.call_tool(
             'GetIndexInfoTool', arguments={'index': TEST_INDEX}
         )
-        response = assert_tool_success(result)
-        assert TEST_INDEX in response
+        assert_tool_success(result, 'Detailed information for index', TEST_INDEX, 'mappings')
 
     async def test_nonexistent_index(self, default_client):
         result = await default_client.call_tool(
             'GetIndexInfoTool', arguments={'index': 'nonexistent_xyz_404_test'}
         )
-        assert_tool_error(result)
+        assert_tool_error(result, 'index_not_found_exception')

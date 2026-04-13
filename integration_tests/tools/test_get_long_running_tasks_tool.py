@@ -9,8 +9,9 @@ from integration_tests.framework.assertions import assert_tool_success
 class TestGetLongRunningTasksTool:
     async def test_get_tasks(self, default_client):
         result = await default_client.call_tool('GetLongRunningTasksTool', arguments={})
-        assert_tool_success(result)
+        # Returns either "Top N long-running tasks..." or "No tasks found in the cluster."
+        assert_tool_success(result, 'tasks')
 
     async def test_get_tasks_with_limit(self, default_client):
         result = await default_client.call_tool('GetLongRunningTasksTool', arguments={'limit': 5})
-        assert_tool_success(result)
+        assert_tool_success(result, 'tasks')

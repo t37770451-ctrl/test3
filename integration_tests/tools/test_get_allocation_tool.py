@@ -9,4 +9,4 @@ from integration_tests.framework.assertions import assert_tool_success
 class TestGetAllocationTool:
     async def test_get_allocation(self, default_client):
         result = await default_client.call_tool('GetAllocationTool', arguments={})
-        assert_tool_success(result)
+        assert_tool_success(result, 'Allocation information')

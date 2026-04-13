@@ -112,12 +112,12 @@ class TestMultiMode:
                 'ListIndexTool',
                 arguments={'opensearch_cluster_name': 'cluster2'},
             )
-            assert_tool_success(result)
+            assert_tool_success(result, TEST_INDEX)
 
     async def test_call_tool_without_cluster_name_errors(self, multi_mode_setup):
         async with mcp_client(multi_mode_setup.url) as session:
             result = await session.call_tool('ListIndexTool', arguments={})
-            assert_tool_error(result)
+            assert_tool_error(result, 'opensearch_cluster_name')
 
     async def test_call_tool_with_nonexistent_cluster_errors(self, multi_mode_setup):
         async with mcp_client(multi_mode_setup.url) as session:
@@ -125,4 +125,4 @@ class TestMultiMode:
                 'ListIndexTool',
                 arguments={'opensearch_cluster_name': 'nonexistent_cluster'},
             )
-            assert_tool_error(result)
+            assert_tool_error(result, 'nonexistent_cluster')

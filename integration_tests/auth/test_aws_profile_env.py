@@ -13,12 +13,11 @@ class TestAWSProfileEnv:
 
     async def test_list_index(self, profile_env_client):
         result = await profile_env_client.call_tool('ListIndexTool', arguments={})
-        response = assert_tool_success(result)
-        assert TEST_INDEX in response
+        assert_tool_success(result, 'All indices information:', TEST_INDEX)
 
     async def test_get_shards(self, profile_env_client):
         result = await profile_env_client.call_tool(
             'GetShardsTool',
             arguments={'index': TEST_INDEX},
         )
-        assert_tool_success(result)
+        assert_tool_success(result, TEST_INDEX, 'shard', 'prirep', 'state')

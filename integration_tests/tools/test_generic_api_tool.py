@@ -15,7 +15,7 @@ class TestGenericApiTool:
             'GenericOpenSearchApiTool',
             arguments={'path': '/_cluster/health', 'method': 'GET'},
         )
-        assert_tool_success(result)
+        assert_tool_success(result, 'OpenSearch API Response')
 
     async def test_get_cat_indices(self, default_client):
         result = await default_client.call_tool(
@@ -26,8 +26,7 @@ class TestGenericApiTool:
                 'query_params': {'format': 'json'},
             },
         )
-        response = assert_tool_success(result)
-        assert TEST_INDEX in response
+        assert_tool_success(result, 'OpenSearch API Response', TEST_INDEX)
 
     async def test_get_with_query_params(self, default_client):
         result = await default_client.call_tool(
@@ -38,7 +37,7 @@ class TestGenericApiTool:
                 'body': {'query': {'match_all': {}}, 'size': 1},
             },
         )
-        assert_tool_success(result)
+        assert_tool_success(result, 'OpenSearch API Response')
 
     # -- Bad paths --
 
@@ -47,11 +46,11 @@ class TestGenericApiTool:
             'GenericOpenSearchApiTool',
             arguments={'path': '/_cat/indices', 'method': 'FOOBAR'},
         )
-        assert_tool_error(result)
+        assert_tool_error(result, 'Invalid HTTP method')
 
     async def test_path_without_leading_slash(self, default_client):
         result = await default_client.call_tool(
             'GenericOpenSearchApiTool',
             arguments={'path': 'cat/indices', 'method': 'GET'},
         )
-        assert_tool_error(result)
+        assert_tool_error(result, 'must start with')

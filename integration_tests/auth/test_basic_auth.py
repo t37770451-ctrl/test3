@@ -18,8 +18,7 @@ class TestBasicAuth:
 
     async def test_list_index(self, basic_auth_client):
         result = await basic_auth_client.call_tool('ListIndexTool', arguments={})
-        response = assert_tool_success(result)
-        assert TEST_INDEX in response
+        assert_tool_success(result, 'All indices information:', TEST_INDEX)
 
     async def test_search_index(self, basic_auth_client):
         result = await basic_auth_client.call_tool(
@@ -29,5 +28,4 @@ class TestBasicAuth:
                 'query_dsl': '{"query": {"match_all": {}}}',
             },
         )
-        response = assert_tool_success(result)
-        assert 'Test document' in response
+        assert_tool_success(result, 'Test document')

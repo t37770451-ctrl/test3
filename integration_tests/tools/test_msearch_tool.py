@@ -17,7 +17,7 @@ class TestMsearchTool:
             ]
         )
         result = await default_client.call_tool('MsearchTool', arguments={'body': searches})
-        assert_tool_success(result)
+        assert_tool_success(result, '"responses"')
 
     async def test_msearch_nonexistent_index(self, default_client):
         searches = json.dumps(
@@ -27,5 +27,5 @@ class TestMsearchTool:
             ]
         )
         result = await default_client.call_tool('MsearchTool', arguments={'body': searches})
-        # Msearch may return partial results with per-search errors
-        assert result.content
+        # Msearch returns 200 with per-search errors in the responses array
+        assert_tool_success(result, '"responses"')

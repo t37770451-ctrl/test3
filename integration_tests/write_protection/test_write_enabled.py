@@ -37,7 +37,7 @@ class TestWriteEnabled:
                 'body': {'title': 'write test', 'category': 'test', 'value': 0},
             },
         )
-        assert_tool_success(result)
+        assert_tool_success(result, 'OpenSearch API Response')
 
         # Clean up the doc we just created
         await write_enabled_client.call_tool(

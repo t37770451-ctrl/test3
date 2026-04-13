@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import pytest
-from integration_tests.framework.assertions import assert_tool_success
+from integration_tests.framework.assertions import assert_tool_error, assert_tool_success
 from integration_tests.framework.constants import TEST_INDEX
 
 
@@ -17,7 +17,7 @@ class TestExplainTool:
                 'body': '{"query": {"match": {"title": "Test document 1"}}}',
             },
         )
-        assert_tool_success(result)
+        assert_tool_success(result, '"matched"')
 
     async def test_explain_nonexistent_doc(self, default_client):
         result = await default_client.call_tool(
@@ -28,6 +28,5 @@ class TestExplainTool:
                 'body': '{"query": {"match_all": {}}}',
             },
         )
-        # May succeed (with matched=false) or error — both are valid
-        # The important thing is the server responds
-        assert result.content
+        # OpenSearch returns 404 NotFoundError for nonexistent doc IDs
+        assert_tool_error(result, 'NotFoundError')

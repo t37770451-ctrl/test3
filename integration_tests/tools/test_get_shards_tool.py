@@ -10,11 +10,10 @@ from integration_tests.framework.constants import TEST_INDEX
 class TestGetShardsTool:
     async def test_get_shards(self, default_client):
         result = await default_client.call_tool('GetShardsTool', arguments={'index': TEST_INDEX})
-        response = assert_tool_success(result)
-        assert TEST_INDEX in response
+        assert_tool_success(result, TEST_INDEX, 'shard', 'prirep', 'state')
 
     async def test_nonexistent_index(self, default_client):
         result = await default_client.call_tool(
             'GetShardsTool', arguments={'index': 'nonexistent_xyz_404_test'}
         )
-        assert_tool_error(result)
+        assert_tool_error(result, 'index_not_found_exception')

@@ -10,26 +10,31 @@ def _extract_texts(result) -> str:
     return '\n'.join(texts)
 
 
-def _has_error_flag(result) -> bool:
-    """Check if any content item has is_error=True, or the top-level isError is set."""
-    if getattr(result, 'isError', False):
-        return True
-    return any(getattr(item, 'is_error', False) for item in result.content)
+_ERROR_PREFIXES = ('Error', 'Input validation error')
 
 
-def assert_tool_success(result) -> str:
+def assert_tool_success(result, *expected: str) -> str:
     """Assert that an MCP tool call returned a non-error response.
+
+    Args:
+        result: The MCP tool call result.
+        *expected: One or more substrings that must appear in the response.
 
     Returns:
         The concatenated text content from the response.
     """
     text = _extract_texts(result)
-    assert not _has_error_flag(result), f'Tool returned error: {text[:500]}'
+    assert not text.startswith(_ERROR_PREFIXES), f'Tool returned error: {text[:500]}'
+    for exp in expected:
+        assert exp in text, f'Expected "{exp}" not found in response: {text[:500]}'
     return text
 
 
 def assert_tool_error(result, expected_substring: str | None = None) -> str:
     """Assert that an MCP tool call returned an error.
+
+    The server's log_tool_error() always formats errors as:
+        "Error <operation>: <exception>"  or  "Error: <exception>"
 
     Args:
         result: The MCP tool call result.
@@ -40,7 +45,7 @@ def assert_tool_error(result, expected_substring: str | None = None) -> str:
         The concatenated text content from the error response.
     """
     text = _extract_texts(result)
-    assert _has_error_flag(result), f'Expected error but got success: {text[:500]}'
+    assert text.startswith(_ERROR_PREFIXES), f'Expected error but got success: {text[:500]}'
     if expected_substring:
         assert expected_substring.lower() in text.lower(), (
             f"Expected '{expected_substring}' in error response: {text[:500]}"
@@ -48,26 +53,41 @@ def assert_tool_error(result, expected_substring: str | None = None) -> str:
     return text
 
 
-def assert_contains_json(result) -> dict | list:
+def assert_contains_json(result, *expected_keys: str) -> dict | list:
     """Assert the response contains parseable JSON and return it.
+
+    Args:
+        result: The MCP tool call result.
+        *expected_keys: Top-level keys that must exist in the parsed JSON dict.
 
     Tries to extract JSON from the text content. Handles cases where the
     JSON is preceded by a description line.
     """
     text = assert_tool_success(result)
+    parsed = None
+
     # Try parsing the whole text first
     try:
-        return json.loads(text)
+        parsed = json.loads(text)
     except json.JSONDecodeError:
         pass
 
     # Try finding JSON starting from first { or [
-    for start_char in ['{', '[']:
-        idx = text.find(start_char)
-        if idx >= 0:
-            try:
-                return json.loads(text[idx:])
-            except json.JSONDecodeError:
-                continue
+    if parsed is None:
+        for start_char in ['{', '[']:
+            idx = text.find(start_char)
+            if idx >= 0:
+                try:
+                    parsed = json.loads(text[idx:])
+                    break
+                except json.JSONDecodeError:
+                    continue
 
-    raise AssertionError(f'No parseable JSON found in response: {text[:500]}')
+    if parsed is None:
+        raise AssertionError(f'No parseable JSON found in response: {text[:500]}')
+
+    if expected_keys and isinstance(parsed, dict):
+        for key in expected_keys:
+            assert key in parsed, f'Expected key "{key}" not in JSON: {list(parsed.keys())}'
+
+    return parsed

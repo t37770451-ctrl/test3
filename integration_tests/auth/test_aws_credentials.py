@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import pytest
-from integration_tests.framework.assertions import assert_tool_success
+from integration_tests.framework.assertions import assert_contains_json
 from integration_tests.framework.constants import TEST_INDEX
 
 
@@ -18,12 +18,12 @@ class TestAWSCredentials:
 
     async def test_cluster_health(self, aws_creds_client):
         result = await aws_creds_client.call_tool('ClusterHealthTool', arguments={})
-        response = assert_tool_success(result)
-        assert any(s in response for s in ['green', 'yellow', 'red'])
+        data = assert_contains_json(result, 'cluster_name', 'status')
+        assert data['status'] in ('green', 'yellow', 'red')
 
     async def test_count(self, aws_creds_client):
         result = await aws_creds_client.call_tool(
             'CountTool',
             arguments={'index': TEST_INDEX},
         )
-        assert_tool_success(result)
+        assert_contains_json(result, 'count')
