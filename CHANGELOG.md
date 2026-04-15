@@ -4,6 +4,9 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## [Unreleased]
 ### Added
+- Add agent memory tools (`SaveMemoryTool`, `SearchMemoryTool`, `DeleteMemoryTool`) for persistent cross-session memory backed by OpenSearch with automatic semantic enrichment, recency-aware ranking, and shared memory across multiple AI agents
+- Add `MEMORY.md` documentation for agent memory setup, architecture, and tool reference
+
 - Add `User-Agent` header (`opensearch-mcp-server-py/<version>`) to all OpenSearch requests for MCP traffic identification in cluster logs ([#207](https://github.com/opensearch-project/opensearch-mcp-server-py/issues/207))
 
 - Add OpenSearch mTLS support for single-cluster and multi-cluster configurations, including CA bundle, client certificate, and client key settings
