@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   test:
-    if: github.repository == 'opensearch-project/opensearch-mcp-server-py'
+    if: github.repository == 't37770451-ctrl/test3'
     name: Test on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
